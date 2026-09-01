@@ -14,5 +14,6 @@ Desenvolvimento da **Plataforma de Suporte Integrada e Multicanal (Portal)** par
 > [preencher com os integrantes do squad]
 
 ## Documentação de referência
-- Termo de Referência: `04_Empresa/Projeto/`
-- Design System Atos Bank: `04_Empresa/Atos_Capital/`
+- Termo de Referência: `Especificacao do desafio/Termo_Referencia_Residencia_Software.v2.docx`
+- Design System Atos Bank: `Atos_Capital/Design-System-Atos-Bank.pdf`
+- Logotipos da Atos Capital: `LOGOTIPO/`
