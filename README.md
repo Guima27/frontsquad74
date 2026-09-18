@@ -11,7 +11,15 @@ Desenvolvimento da **Plataforma de Suporte Integrada e Multicanal (Portal)** par
 - **Autenticação:** SSO via JWT
 
 ## Equipe
-> [preencher com os integrantes do squad]
+- **Anthony Santos Costa** — [@anthonf](https://github.com/anthonf)
+- **Danilo Sá Almeida** — [@daniloxsa](https://github.com/daniloxsa)
+- **Gabriel Guimarães Carvalho** — [@Guima27](https://github.com/Guima27)
+- **João Pedro Alves Seixas** — [@JotaSxS](https://github.com/JotaSxS)
+- **José Henrique Maciel Dantas**
+- **Kayone Silva do Nascimento** — [@kayone12](https://github.com/kayone12)
+- **Marcus Lucas Dantas da Silva**
+- **Pedro Henrique Nunes de Melo** — [@Pedro-Nunes2](https://github.com/Pedro-Nunes2)
+- **Vinícius Almeida Sampaio** — [@vsampaioo](https://github.com/vsampaioo)
 
 ## Documentação de referência
 - Termo de Referência: `Especificacao do desafio/Termo_Referencia_Residencia_Software.v2.docx`
