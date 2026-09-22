@@ -1,0 +1,24 @@
+services:
+  supportatos-db:
+    image: postgres:17
+    networks:
+      - supportatos-network
+    container_name: supportatos-db
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-supportatos}
+      - POSTGRES_DB=supportatos
+    ports:
+      - 5433:5432
+    volumes:
+      - ./scripts:/docker-entrypoint-initdb.d
+      - supportatos-db-data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  supportatos-db-data:
+    name: supportatos-db-data
+
+networks:
+  supportatos-network:
+    external: true
