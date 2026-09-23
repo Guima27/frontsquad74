@@ -15,7 +15,7 @@ Desenvolvimento da **Plataforma de Suporte Integrada e Multicanal (Portal)** par
 - **Danilo Sá Almeida** — [@daniloxsa](https://github.com/daniloxsa)
 - **Gabriel Guimarães Carvalho** — [@Guima27](https://github.com/Guima27)
 - **João Pedro Alves Seixas** — [@JotaSxS](https://github.com/JotaSxS)
-- **José Henrique Maciel Dantas**
+- **José Henrique Maciel Dantas** — [@Henriquexzt](https://github.com/Henriquexzt)
 - **Kayone Silva do Nascimento** — [@kayone12](https://github.com/kayone12)
 - **Marcus Lucas Dantas da Silva**
 - **Pedro Henrique Nunes de Melo** — [@Pedro-Nunes2](https://github.com/Pedro-Nunes2)
