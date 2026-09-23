@@ -21,6 +21,9 @@ Desenvolvimento da **Plataforma de Suporte Integrada e Multicanal (Portal)** par
 - **Pedro Henrique Nunes de Melo** — [@Pedro-Nunes2](https://github.com/Pedro-Nunes2)
 - **Vinícius Almeida Sampaio** — [@vsampaioo](https://github.com/vsampaioo)
 
+## Responsável por PRs
+- **João Pedro Alves Seixas** — [@JotaSxS](https://github.com/JotaSxS)
+
 ## Documentação de referência
 - Termo de Referência: `Especificacao do desafio/Termo_Referencia_Residencia_Software.v2.docx`
 - Design System Atos Bank: `Atos_Capital/Design-System-Atos-Bank.pdf`
