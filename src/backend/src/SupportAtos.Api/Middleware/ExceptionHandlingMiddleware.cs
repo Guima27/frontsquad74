@@ -33,6 +33,7 @@ public class ExceptionHandlingMiddleware
         {
             ValidationException ex => (StatusCodes.Status400BadRequest, ToProblemDetails(StatusCodes.Status400BadRequest, "Requisição inválida", ex.Errors)),
             DomainException ex => (StatusCodes.Status400BadRequest, ToProblemDetails(StatusCodes.Status400BadRequest, "Requisição inválida", new[] { ex.Message })),
+            ForbiddenException ex => (StatusCodes.Status403Forbidden, ToProblemDetails(StatusCodes.Status403Forbidden, "Acesso negado", new[] { ex.Message })),
             NotFoundException ex => (StatusCodes.Status404NotFound, ToProblemDetails(StatusCodes.Status404NotFound, "Não encontrado", new[] { ex.Message })),
             ConflictException ex => (StatusCodes.Status409Conflict, ToProblemDetails(StatusCodes.Status409Conflict, "Conflito", new[] { ex.Message })),
             _ => HandleUnexpected(context, exception)

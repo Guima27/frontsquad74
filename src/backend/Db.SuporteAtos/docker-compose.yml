@@ -19,6 +19,9 @@ volumes:
   supportatos-db-data:
     name: supportatos-db-data
 
+# Rede interna (não externa): o compose raiz usa rede padrão.
+# Mantido aqui só por compatibilidade — prefira o docker-compose.yml da raiz.
+# Fonte oficial do schema: EF Core Migrations (src/SupportAtos.Infrastructure/Migrations).
 networks:
   supportatos-network:
-    external: true
+    driver: bridge

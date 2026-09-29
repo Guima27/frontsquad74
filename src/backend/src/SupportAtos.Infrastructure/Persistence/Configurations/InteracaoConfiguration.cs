@@ -15,15 +15,16 @@ public class InteracaoConfiguration : IEntityTypeConfiguration<Interacao>
         builder.Property(i => i.Id)
             .HasColumnName("id");
 
+        // Coluna oficial: autor_id (SQL enviado).
         builder.Property(i => i.UsuarioId)
-            .HasColumnName("usuario_id");
+            .HasColumnName("autor_id");
 
         builder.Property(i => i.ChamadoId)
             .HasColumnName("chamado_id");
 
         builder.Property(i => i.Tipo)
             .HasColumnName("tipo")
-            .HasColumnType("varchar")
+            .HasColumnType("varchar(20)")
             .HasConversion<string>();
 
         builder.Property(i => i.Mensagem)
@@ -33,6 +34,9 @@ public class InteracaoConfiguration : IEntityTypeConfiguration<Interacao>
         builder.Property(i => i.CriadoEm)
             .HasColumnName("criado_em")
             .HasColumnType("timestamp");
+
+        builder.HasIndex(i => i.ChamadoId);
+        builder.HasIndex(i => i.UsuarioId);
 
         builder.HasOne(i => i.Usuario)
             .WithMany(u => u.Interacoes)

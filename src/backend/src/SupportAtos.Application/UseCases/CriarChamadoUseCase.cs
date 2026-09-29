@@ -52,7 +52,15 @@ public class CriarChamadoUseCase
 
         var codigoPublico = await GerarCodigoPublicoUnicoAsync(cancellationToken);
 
-        var chamado = Chamado.Criar(codigoPublico, usuarioAtual.UsuarioIdInterno, usuarioAtual.GrupoEmpresaIdInterno, sla, input.Produto, input.Categoria);
+        var chamado = Chamado.Criar(
+            codigoPublico,
+            usuarioAtual.UsuarioIdInterno,
+            usuarioAtual.GrupoEmpresaIdInterno,
+            sla,
+            input.Produto,
+            input.Categoria,
+            input.Titulo ?? string.Empty,
+            string.IsNullOrWhiteSpace(input.Descricao) ? input.MensagemInicial : input.Descricao);
         chamado.AdicionarInteracao(usuarioAtual.UsuarioIdInterno, TipoInteracao.Publica, input.MensagemInicial, DateTime.UtcNow);
 
         await _chamadoRepository.AddAsync(chamado, cancellationToken);

@@ -15,7 +15,21 @@ namespace SupportAtos.TokenMinter;
 /// </summary>
 internal static class Program
 {
-    private const string DefaultKeysDir = "tools/SupportAtos.TokenMinter/keys";
+    private static readonly string DefaultKeysDir = BuscarDiretorioDeChaves();
+
+    private static string BuscarDiretorioDeChaves()
+    {
+        var diretorio = new DirectoryInfo(AppContext.BaseDirectory);
+        while (diretorio != null &&
+               !File.Exists(Path.Combine(diretorio.FullName, "SupportAtos.TokenMinter.csproj")))
+        {
+            diretorio = diretorio.Parent;
+        }
+
+        return diretorio != null
+            ? Path.Combine(diretorio.FullName, "keys")
+            : Path.Combine("tools", "SupportAtos.TokenMinter", "keys");
+    }
 
     private static int Main(string[] args)
     {

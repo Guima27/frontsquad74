@@ -23,11 +23,11 @@ public class LogAuditoriaConfiguration : IEntityTypeConfiguration<LogAuditoria>
 
         builder.Property(l => l.Acao)
             .HasColumnName("acao")
-            .HasColumnType("varchar");
+            .HasColumnType("varchar(50)");
 
         builder.Property(l => l.CampoAlterado)
             .HasColumnName("campo_alterado")
-            .HasColumnType("varchar");
+            .HasColumnType("varchar(100)");
 
         builder.Property(l => l.ValorAnterior)
             .HasColumnName("valor_anterior")
@@ -37,9 +37,14 @@ public class LogAuditoriaConfiguration : IEntityTypeConfiguration<LogAuditoria>
             .HasColumnName("valor_novo")
             .HasColumnType("text");
 
+        // Coluna oficial: criado_em (SQL enviado).
         builder.Property(l => l.Data)
-            .HasColumnName("data")
+            .HasColumnName("criado_em")
             .HasColumnType("timestamp");
+
+        builder.HasIndex(l => l.ChamadoId);
+        builder.HasIndex(l => l.Data);
+        builder.HasIndex(l => l.UsuarioId);
 
         builder.HasOne(l => l.Chamado)
             .WithMany(c => c.LogsAuditoria)

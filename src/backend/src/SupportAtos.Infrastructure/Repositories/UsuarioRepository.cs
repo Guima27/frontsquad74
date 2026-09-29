@@ -38,6 +38,14 @@ public class UsuarioRepository : IUsuarioRepository
     public Task<bool> EmailExisteAsync(string email, CancellationToken cancellationToken = default)
         => _context.Usuarios.AnyAsync(u => u.Email == email, cancellationToken);
 
+    public async Task<IReadOnlyList<Usuario>> ListarAgentesAsync(CancellationToken cancellationToken = default)
+        => await _context.Usuarios
+            .Where(u => u.Papel == Domain.Enums.PapelUsuario.Agente
+                || u.Papel == Domain.Enums.PapelUsuario.Supervisor
+                || u.Papel == Domain.Enums.PapelUsuario.Admin)
+            .OrderBy(u => u.Id)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(Usuario usuario, CancellationToken cancellationToken = default)
         => await _context.Usuarios.AddAsync(usuario, cancellationToken);
 }

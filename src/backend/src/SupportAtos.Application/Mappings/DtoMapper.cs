@@ -10,12 +10,18 @@ public static class DtoMapper
         chamado.CodigoPublico,
         chamado.UsuarioId,
         chamado.GrupoEmpresaId,
+        chamado.AgenteId,
         chamado.Produto,
         chamado.Categoria,
+        chamado.Titulo,
+        chamado.Descricao,
         chamado.Status,
         chamado.Prioridade,
         chamado.SlaPrazo,
+        chamado.SlaPrazoResposta,
+        chamado.AguardandoDesde,
         chamado.CriadoEm,
+        chamado.AtualizadoEm,
         chamado.FechadoEm);
 
     public static AnexoDto ToDto(Anexo anexo) => new(

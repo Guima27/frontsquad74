@@ -27,6 +27,20 @@ public static class AuthenticationSetup
                 "SSO não configurado: defina 'Sso:JwksUrl' (produção) ou 'Sso:PublicKeyPem' (local/testes) via user-secrets ou variáveis de ambiente.");
         }
 
+        if (string.IsNullOrWhiteSpace(sso.Issuer))
+        {
+            throw new InvalidOperationException(
+                "SSO não configurado: defina 'Sso:Issuer' via user-secrets ou variáveis de ambiente.");
+        }
+
+        if (string.IsNullOrWhiteSpace(sso.Audience))
+        {
+            throw new InvalidOperationException(
+                "SSO não configurado: defina 'Sso:Audience' via user-secrets ou variáveis de ambiente.");
+        }
+
+        var apiKeyConfigurada = !string.IsNullOrWhiteSpace(sso.ApiKey);
+
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -37,8 +51,22 @@ public static class AuthenticationSetup
         {
             jwt.MapInboundClaims = false;
             jwt.SaveToken = true;
+            // Rotas de portal exigem JWT explícito (AuthenticationSchemes = JwtBearer).
+            // O seletor só desvia para ApiKey quando há X-Api-Key configurada no servidor
+            // E não há Bearer na requisição — um JWT válido nunca é derrubado por ApiKey.
             jwt.ForwardDefaultSelector = ctx =>
-                ctx.Request.Headers.ContainsKey(ApiKeyHeaderName) ? ApiKeyScheme : JwtBearerDefaults.AuthenticationScheme;
+            {
+                if (!apiKeyConfigurada)
+                {
+                    return JwtBearerDefaults.AuthenticationScheme;
+                }
+
+                var temApiKey = ctx.Request.Headers.ContainsKey(ApiKeyHeaderName);
+                var authorization = ctx.Request.Headers.Authorization.ToString();
+                var temBearer = authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
+
+                return temApiKey && !temBearer ? ApiKeyScheme : JwtBearerDefaults.AuthenticationScheme;
+            };
 
             var tvp = jwt.TokenValidationParameters;
             tvp.ClockSkew = TimeSpan.FromSeconds(sso.ClockSkewSeconds);
@@ -48,8 +76,8 @@ public static class AuthenticationSetup
             tvp.NameClaimType = sso.ClaimNames.Nome;
             tvp.RoleClaimType = sso.ClaimNames.Role;
             tvp.ValidateIssuerSigningKey = true;
-            tvp.ValidateIssuer = !string.IsNullOrWhiteSpace(sso.Issuer);
-            tvp.ValidateAudience = !string.IsNullOrWhiteSpace(sso.Audience);
+            tvp.ValidateIssuer = true;
+            tvp.ValidateAudience = true;
             tvp.ValidateLifetime = true;
 
             if (!string.IsNullOrWhiteSpace(sso.PublicKeyPem))
@@ -58,10 +86,15 @@ public static class AuthenticationSetup
             }
             else
             {
+                var retriever = new HttpDocumentRetriever { RequireHttps = true };
                 jwt.ConfigurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
                     sso.JwksUrl!,
                     new OpenIdConnectConfigurationRetriever(),
-                    new HttpClient());
+                    retriever)
+                {
+                    AutomaticRefreshInterval = TimeSpan.FromHours(12),
+                    RefreshInterval = TimeSpan.FromMinutes(5)
+                };
 
                 tvp.IssuerSigningKeyResolver = (token, securityToken, kid, parameters) =>
                 {

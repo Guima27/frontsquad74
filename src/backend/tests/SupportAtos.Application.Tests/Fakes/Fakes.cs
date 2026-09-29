@@ -29,6 +29,12 @@ public class FakeUsuarioRepository : IUsuarioRepository
     public Task<bool> EmailExisteAsync(string email, CancellationToken cancellationToken = default)
         => Task.FromResult(_usuarios.Any(u => u.Email == email));
 
+    public Task<IReadOnlyList<Usuario>> ListarAgentesAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<Usuario>>(_usuarios
+            .Where(u => u.Papel is PapelUsuario.Agente or PapelUsuario.Supervisor or PapelUsuario.Admin)
+            .OrderBy(u => u.Id)
+            .ToList());
+
     public Task AddAsync(Usuario usuario, CancellationToken cancellationToken = default)
     {
         if (usuario.Id == 0)
@@ -123,6 +129,47 @@ public class FakeChamadoRepository : IChamadoRepository
 
     public Task<bool> CodigoPublicoExisteAsync(string codigoPublico, CancellationToken cancellationToken = default)
         => Task.FromResult(_chamados.Any(c => c.CodigoPublico == codigoPublico));
+
+    public Task<IReadOnlyList<Chamado>> ListarFilaAsync(DTOs.FilaChamadosQuery filtro, CancellationToken cancellationToken = default)
+    {
+        var query = _chamados.AsQueryable();
+
+        if (filtro.Status.HasValue)
+        {
+            query = query.Where(c => c.Status == filtro.Status.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtro.Categoria))
+        {
+            query = query.Where(c => c.Categoria == filtro.Categoria);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtro.Produto))
+        {
+            query = query.Where(c => c.Produto == filtro.Produto);
+        }
+
+        if (filtro.AgenteId.HasValue)
+        {
+            query = query.Where(c => c.AgenteId == filtro.AgenteId.Value);
+        }
+
+        if (filtro.GrupoEmpresaId.HasValue)
+        {
+            query = query.Where(c => c.GrupoEmpresaId == filtro.GrupoEmpresaId.Value);
+        }
+
+        if (filtro.SemAgente == true)
+        {
+            query = query.Where(c => c.AgenteId == null);
+        }
+
+        return Task.FromResult<IReadOnlyList<Chamado>>(query.OrderBy(c => c.CriadoEm).ToList());
+    }
+
+    public Task<int> ContarAbertosPorAgenteAsync(int agenteId, CancellationToken cancellationToken = default)
+        => Task.FromResult(_chamados.Count(c =>
+            c.AgenteId == agenteId && (c.Status == StatusChamado.Aberto || c.Status == StatusChamado.EmAndamento)));
 
     public Task AddAsync(Chamado chamado, CancellationToken cancellationToken = default)
     {

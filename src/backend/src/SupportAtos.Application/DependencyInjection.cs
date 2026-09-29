@@ -12,6 +12,10 @@ public static class DependencyInjection
         services.AddScoped<IUserProvisioningService, UserProvisioningService>();
         services.AddScoped<CriarChamadoUseCase>();
         services.AddScoped<ConsultarChamadoUseCase>();
+        services.AddScoped<ListarChamadosUseCase>();
+        services.AddScoped<ResponderChamadoUseCase>();
+        services.AddScoped<MudarStatusChamadoUseCase>();
+        services.AddScoped<AtribuirAgenteUseCase>();
         services.AddScoped<CadastrarUsuarioUseCase>();
         services.AddScoped<ConsultarUsuarioUseCase>();
         services.AddScoped<ListarUsuariosPorGrupoUseCase>();

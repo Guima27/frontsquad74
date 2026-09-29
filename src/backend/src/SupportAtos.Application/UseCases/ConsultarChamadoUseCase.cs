@@ -29,12 +29,16 @@ public class ConsultarChamadoUseCase
             throw new NotFoundException($"Chamado '{codigoPublico}' não encontrado.");
         }
 
-        var interacoesPublicas = chamado.Interacoes
-            .Where(i => i.Tipo == TipoInteracao.Publica)
+        // Cliente vê só conversa pública; agente/supervisor/admin veem notas internas também.
+        var visiveis = usuarioAtual.Papel == PapelUsuario.Cliente
+            ? chamado.Interacoes.Where(i => i.Tipo == TipoInteracao.Publica)
+            : chamado.Interacoes;
+
+        var interacoes = visiveis
             .OrderBy(i => i.CriadoEm)
             .Select(DtoMapper.ToDto)
             .ToList();
 
-        return new ChamadoDetalheDto(DtoMapper.ToDto(chamado), interacoesPublicas);
+        return new ChamadoDetalheDto(DtoMapper.ToDto(chamado), interacoes);
     }
 }

@@ -8,6 +8,14 @@ public class GrupoEmpresa
 
     public string Nome { get; private set; } = string.Empty;
 
+    public string Tipo { get; private set; } = "matriz";
+
+    public int? GrupoPaiId { get; private set; }
+
+    public GrupoEmpresa? GrupoPai { get; private set; }
+
+    public DateTime CriadoEm { get; private set; } = DateTime.UtcNow;
+
     public ICollection<Usuario> Usuarios { get; private set; } = new List<Usuario>();
 
     public ICollection<Chamado> Chamados { get; private set; } = new List<Chamado>();
@@ -31,6 +39,21 @@ public class GrupoEmpresa
         }
 
         Nome = nome.Trim();
+    }
+
+    public void DefinirTipo(string tipo)
+    {
+        Tipo = string.IsNullOrWhiteSpace(tipo) ? "matriz" : tipo.Trim().ToLowerInvariant();
+    }
+
+    public void DefinirPai(int? grupoPaiId)
+    {
+        if (grupoPaiId.HasValue && grupoPaiId.Value == Id)
+        {
+            throw new Exceptions.DomainException("O grupo não pode ser pai de si mesmo.");
+        }
+
+        GrupoPaiId = grupoPaiId;
     }
 
     public void AtribuirCodigoExterno(string codigoExterno)

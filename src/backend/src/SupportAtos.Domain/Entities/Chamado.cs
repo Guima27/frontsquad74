@@ -16,6 +16,10 @@ public class Chamado
 
     public GrupoEmpresa? GrupoEmpresa { get; private set; }
 
+    public int? AgenteId { get; private set; }
+
+    public Usuario? Agente { get; private set; }
+
     public int SlaCategoriaId { get; private set; }
 
     public SlaCategoria? SlaCategoria { get; private set; }
@@ -24,13 +28,24 @@ public class Chamado
 
     public string Categoria { get; private set; } = string.Empty;
 
+    public string Titulo { get; private set; } = string.Empty;
+
+    public string Descricao { get; private set; } = string.Empty;
+
     public StatusChamado Status { get; private set; }
 
     public Prioridade Prioridade { get; private set; }
 
+    /// <summary>Prazo de resolução (sla_config.tempo_resolucao_min). Mantém nome legado SlaPrazo.</summary>
     public DateTime SlaPrazo { get; private set; }
 
+    public DateTime? SlaPrazoResposta { get; private set; }
+
+    public DateTime? AguardandoDesde { get; private set; }
+
     public DateTime CriadoEm { get; private set; }
+
+    public DateTime? AtualizadoEm { get; private set; }
 
     public DateTime? FechadoEm { get; private set; }
 
@@ -49,6 +64,8 @@ public class Chamado
         SlaCategoria slaCategoria,
         string produto,
         string categoria,
+        string titulo,
+        string descricao,
         DateTime criadoEm)
     {
         CodigoPublico = codigoPublico;
@@ -57,10 +74,14 @@ public class Chamado
         SlaCategoriaId = slaCategoria.Id;
         Produto = produto;
         Categoria = categoria;
+        Titulo = titulo;
+        Descricao = descricao;
         Status = StatusChamado.Aberto;
         Prioridade = slaCategoria.Prioridade;
         CriadoEm = criadoEm;
-        SlaPrazo = criadoEm.AddHours(slaCategoria.TempoResolucao);
+        AtualizadoEm = criadoEm;
+        SlaPrazo = criadoEm.AddMinutes(slaCategoria.TempoResolucao);
+        SlaPrazoResposta = criadoEm.AddMinutes(slaCategoria.TempoResposta);
     }
 
     public static Chamado Criar(
@@ -69,7 +90,9 @@ public class Chamado
         int grupoEmpresaId,
         SlaCategoria slaCategoria,
         string produto,
-        string categoria)
+        string categoria,
+        string titulo = "",
+        string descricao = "")
     {
         if (string.IsNullOrWhiteSpace(codigoPublico))
         {
@@ -101,7 +124,10 @@ public class Chamado
             throw new Exceptions.DomainException("A categoria é obrigatória.");
         }
 
-        return new Chamado(codigoPublico, usuarioId, grupoEmpresaId, slaCategoria, produto.Trim(), categoria.Trim(), DateTime.UtcNow);
+        var tituloFinal = string.IsNullOrWhiteSpace(titulo) ? categoria.Trim() : titulo.Trim();
+        var descricaoFinal = string.IsNullOrWhiteSpace(descricao) ? string.Empty : descricao.Trim();
+
+        return new Chamado(codigoPublico, usuarioId, grupoEmpresaId, slaCategoria, produto.Trim(), categoria.Trim(), tituloFinal, descricaoFinal, DateTime.UtcNow);
     }
 
     public Interacao AdicionarInteracao(int usuarioId, TipoInteracao tipo, string mensagem, DateTime criadoEm)
@@ -118,6 +144,7 @@ public class Chamado
 
         var interacao = Interacao.Criar(this, usuarioId, tipo, mensagem, criadoEm);
         Interacoes.Add(interacao);
+        AtualizadoEm = criadoEm;
         return interacao;
     }
 
@@ -145,6 +172,19 @@ public class Chamado
 
         Status = novoStatus;
         FechadoEm = novoStatus == StatusChamado.Fechado ? agora : null;
+        AguardandoDesde = novoStatus == StatusChamado.AguardandoCliente ? agora : null;
+        AtualizadoEm = agora;
+    }
+
+    public void AtribuirAgente(int? agenteId, DateTime agora)
+    {
+        if (agenteId.HasValue && agenteId.Value <= 0)
+        {
+            throw new Exceptions.DomainException("O agente atribuído é inválido.");
+        }
+
+        AgenteId = agenteId;
+        AtualizadoEm = agora;
     }
 
     public void AtribuirCodigoPublico(string codigoPublico)

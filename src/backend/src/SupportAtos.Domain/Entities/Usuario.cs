@@ -19,6 +19,10 @@ public partial class Usuario
 
     public PapelUsuario Papel { get; private set; }
 
+    public DateTime CriadoEm { get; private set; } = DateTime.UtcNow;
+
+    public DateTime? AtualizadoEm { get; private set; }
+
     public ICollection<Chamado> Chamados { get; private set; } = new List<Chamado>();
 
     public ICollection<Interacao> Interacoes { get; private set; } = new List<Interacao>();
@@ -75,6 +79,7 @@ public partial class Usuario
     public void AlterarPapel(PapelUsuario novoPapel)
     {
         Papel = novoPapel;
+        AtualizadoEm = DateTime.UtcNow;
     }
 
     public void AtribuirCodigoExterno(string codigoExterno)
@@ -95,6 +100,7 @@ public partial class Usuario
         }
 
         GrupoEmpresaId = grupoEmpresaId;
+        AtualizadoEm = DateTime.UtcNow;
     }
 
     [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$")]

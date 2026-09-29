@@ -31,25 +31,35 @@ namespace SupportAtos.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("InteracaoId")
+                    b.Property<int>("ChamadoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("chamado_id");
+
+                    b.Property<int?>("InteracaoId")
                         .HasColumnType("integer")
                         .HasColumnName("interacao_id");
 
                     b.Property<string>("NomeArquivo")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("nome_arquivo");
 
                     b.Property<int>("TamanhoBytes")
                         .HasColumnType("integer")
                         .HasColumnName("tamanho_bytes");
 
+                    b.Property<string>("TipoMime")
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("tipo_mime");
+
                     b.Property<string>("Url")
                         .IsRequired()
-                        .HasColumnType("varchar")
-                        .HasColumnName("url");
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("caminho");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ChamadoId");
 
                     b.HasIndex("InteracaoId");
 
@@ -65,19 +75,36 @@ namespace SupportAtos.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AgenteId")
+                        .HasColumnType("integer")
+                        .HasColumnName("agente_id");
+
+                    b.Property<DateTime?>("AguardandoDesde")
+                        .HasColumnType("timestamp")
+                        .HasColumnName("aguardando_desde");
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp")
+                        .HasColumnName("atualizado_em");
+
                     b.Property<string>("Categoria")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("categoria");
 
                     b.Property<string>("CodigoPublico")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("codigo_publico");
 
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("timestamp")
                         .HasColumnName("criado_em");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("descricao");
 
                     b.Property<DateTime?>("FechadoEm")
                         .HasColumnType("timestamp")
@@ -89,32 +116,43 @@ namespace SupportAtos.Infrastructure.Migrations
 
                     b.Property<string>("Prioridade")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("prioridade");
 
                     b.Property<string>("Produto")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("produto");
 
                     b.Property<int>("SlaCategoriaId")
                         .HasColumnType("integer")
-                        .HasColumnName("sla_categoria_id");
+                        .HasColumnName("sla_config_id");
 
                     b.Property<DateTime>("SlaPrazo")
                         .HasColumnType("timestamp")
-                        .HasColumnName("sla_prazo");
+                        .HasColumnName("sla_prazo_resolucao");
+
+                    b.Property<DateTime?>("SlaPrazoResposta")
+                        .HasColumnType("timestamp")
+                        .HasColumnName("sla_prazo_resposta");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("status");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("titulo");
 
                     b.Property<int>("UsuarioId")
                         .HasColumnType("integer")
                         .HasColumnName("usuario_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AgenteId");
 
                     b.HasIndex("CodigoPublico")
                         .IsUnique();
@@ -123,7 +161,13 @@ namespace SupportAtos.Infrastructure.Migrations
 
                     b.HasIndex("SlaCategoriaId");
 
+                    b.HasIndex("SlaPrazo");
+
+                    b.HasIndex("Status");
+
                     b.HasIndex("UsuarioId");
+
+                    b.HasIndex("Produto", "Categoria", "Status", "GrupoEmpresaId", "CriadoEm");
 
                     b.ToTable("chamado", (string)null);
                 });
@@ -141,15 +185,32 @@ namespace SupportAtos.Infrastructure.Migrations
                         .HasColumnType("varchar")
                         .HasColumnName("codigo_externo");
 
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp")
+                        .HasColumnName("criado_em");
+
+                    b.Property<int?>("GrupoPaiId")
+                        .HasColumnType("integer")
+                        .HasColumnName("grupo_pai_id");
+
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(150)")
                         .HasColumnName("nome");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("matriz")
+                        .HasColumnName("tipo");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CodigoExterno")
                         .IsUnique();
+
+                    b.HasIndex("GrupoPaiId");
 
                     b.ToTable("grupo_empresa", (string)null);
                 });
@@ -178,12 +239,12 @@ namespace SupportAtos.Infrastructure.Migrations
 
                     b.Property<string>("Tipo")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("tipo");
 
                     b.Property<int>("UsuarioId")
                         .HasColumnType("integer")
-                        .HasColumnName("usuario_id");
+                        .HasColumnName("autor_id");
 
                     b.HasKey("Id");
 
@@ -205,11 +266,11 @@ namespace SupportAtos.Infrastructure.Migrations
 
                     b.Property<string>("Acao")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("acao");
 
                     b.Property<string>("CampoAlterado")
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("campo_alterado");
 
                     b.Property<int>("ChamadoId")
@@ -218,9 +279,9 @@ namespace SupportAtos.Infrastructure.Migrations
 
                     b.Property<DateTime>("Data")
                         .HasColumnType("timestamp")
-                        .HasColumnName("data");
+                        .HasColumnName("criado_em");
 
-                    b.Property<int>("UsuarioId")
+                    b.Property<int?>("UsuarioId")
                         .HasColumnType("integer")
                         .HasColumnName("usuario_id");
 
@@ -235,6 +296,8 @@ namespace SupportAtos.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ChamadoId");
+
+                    b.HasIndex("Data");
 
                     b.HasIndex("UsuarioId");
 
@@ -283,32 +346,41 @@ namespace SupportAtos.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("Ativo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("ativo");
+
                     b.Property<string>("Categoria")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("categoria");
 
                     b.Property<string>("Prioridade")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("prioridade");
 
                     b.Property<string>("Produto")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("produto");
 
                     b.Property<int>("TempoResolucao")
                         .HasColumnType("integer")
-                        .HasColumnName("tempo_resolucao");
+                        .HasColumnName("tempo_resolucao_min");
 
                     b.Property<int>("TempoResposta")
                         .HasColumnType("integer")
-                        .HasColumnName("tempo_resposta");
+                        .HasColumnName("tempo_resposta_min");
 
                     b.HasKey("Id");
 
-                    b.ToTable("sla_categoria", (string)null);
+                    b.HasIndex("Produto", "Categoria", "Prioridade")
+                        .IsUnique();
+
+                    b.ToTable("sla_config", (string)null);
                 });
 
             modelBuilder.Entity("SupportAtos.Domain.Entities.Usuario", b =>
@@ -320,13 +392,21 @@ namespace SupportAtos.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp")
+                        .HasColumnName("atualizado_em");
+
                     b.Property<string>("CodigoExterno")
                         .HasColumnType("varchar")
                         .HasColumnName("codigo_externo");
 
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp")
+                        .HasColumnName("criado_em");
+
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("email");
 
                     b.Property<int>("GrupoEmpresaId")
@@ -335,12 +415,12 @@ namespace SupportAtos.Infrastructure.Migrations
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(150)")
                         .HasColumnName("nome");
 
                     b.Property<string>("Papel")
                         .IsRequired()
-                        .HasColumnType("varchar")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("papel");
 
                     b.HasKey("Id");
@@ -358,17 +438,29 @@ namespace SupportAtos.Infrastructure.Migrations
 
             modelBuilder.Entity("SupportAtos.Domain.Entities.Anexo", b =>
                 {
+                    b.HasOne("SupportAtos.Domain.Entities.Chamado", "Chamado")
+                        .WithMany()
+                        .HasForeignKey("ChamadoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("SupportAtos.Domain.Entities.Interacao", "Interacao")
                         .WithMany("Anexos")
                         .HasForeignKey("InteracaoId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Chamado");
 
                     b.Navigation("Interacao");
                 });
 
             modelBuilder.Entity("SupportAtos.Domain.Entities.Chamado", b =>
                 {
+                    b.HasOne("SupportAtos.Domain.Entities.Usuario", "Agente")
+                        .WithMany()
+                        .HasForeignKey("AgenteId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("SupportAtos.Domain.Entities.GrupoEmpresa", "GrupoEmpresa")
                         .WithMany("Chamados")
                         .HasForeignKey("GrupoEmpresaId")
@@ -387,11 +479,23 @@ namespace SupportAtos.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.Navigation("Agente");
+
                     b.Navigation("GrupoEmpresa");
 
                     b.Navigation("SlaCategoria");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("SupportAtos.Domain.Entities.GrupoEmpresa", b =>
+                {
+                    b.HasOne("SupportAtos.Domain.Entities.GrupoEmpresa", "GrupoPai")
+                        .WithMany()
+                        .HasForeignKey("GrupoPaiId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("GrupoPai");
                 });
 
             modelBuilder.Entity("SupportAtos.Domain.Entities.Interacao", b =>
@@ -424,8 +528,7 @@ namespace SupportAtos.Infrastructure.Migrations
                     b.HasOne("SupportAtos.Domain.Entities.Usuario", "Usuario")
                         .WithMany("LogsAuditoria")
                         .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Chamado");
 

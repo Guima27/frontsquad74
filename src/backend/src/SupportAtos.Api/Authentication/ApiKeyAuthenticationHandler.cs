@@ -55,8 +55,10 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
 
     private static bool FixedTimeEquals(string esperada, string recebida)
     {
-        var a = Encoding.UTF8.GetBytes(esperada);
-        var b = Encoding.UTF8.GetBytes(recebida);
-        return a.Length == b.Length && CryptographicOperations.FixedTimeEquals(a, b);
+        // Compara hashes SHA-256 (32 bytes fixos) em tempo constante para não
+        // vazar o tamanho da chave configurada via tempo de resposta.
+        var a = SHA256.HashData(Encoding.UTF8.GetBytes(esperada));
+        var b = SHA256.HashData(Encoding.UTF8.GetBytes(recebida));
+        return CryptographicOperations.FixedTimeEquals(a, b);
     }
 }

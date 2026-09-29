@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SupportAtos.Application.DTOs;
@@ -24,7 +25,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
     [ProducesResponseType(typeof(UsuarioDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -36,6 +37,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Supervisor,Agente")]
     [ProducesResponseType(typeof(UsuarioDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ConsultarUsuario(int id, CancellationToken cancellationToken)
@@ -45,7 +47,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Supervisor,Agente")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Supervisor,Agente")]
     [ProducesResponseType(typeof(IReadOnlyList<UsuarioDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListarUsuariosPorGrupo([FromQuery] int grupoEmpresaId, CancellationToken cancellationToken)
     {

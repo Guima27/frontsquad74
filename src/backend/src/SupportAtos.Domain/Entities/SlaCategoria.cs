@@ -16,6 +16,9 @@ public class SlaCategoria
 
     public int TempoResolucao { get; private set; }
 
+    /// <summary>Minutos (sla_config.tempo_resposta_min / tempo_resolucao_min).</summary>
+    public bool Ativo { get; private set; } = true;
+
     public ICollection<Chamado> Chamados { get; private set; } = new List<Chamado>();
 
     protected SlaCategoria()
@@ -30,8 +33,12 @@ public class SlaCategoria
         AlterarTempos(tempoResposta, tempoResolucao);
     }
 
-    public static SlaCategoria Criar(string produto, string categoria, Prioridade prioridade, int tempoResposta, int tempoResolucao)
-        => new(produto, categoria, prioridade, tempoResposta, tempoResolucao);
+    public static SlaCategoria Criar(string produto, string categoria, Prioridade prioridade, int tempoResposta, int tempoResolucao, bool ativo = true)
+    {
+        var sla = new SlaCategoria(produto, categoria, prioridade, tempoResposta, tempoResolucao);
+        sla.Ativo = ativo;
+        return sla;
+    }
 
     public void AlterarProduto(string produto)
     {
@@ -56,6 +63,11 @@ public class SlaCategoria
     public void AlterarPrioridade(Prioridade prioridade)
     {
         Prioridade = prioridade;
+    }
+
+    public void DefinirAtivo(bool ativo)
+    {
+        Ativo = ativo;
     }
 
     public void AlterarTempos(int tempoResposta, int tempoResolucao)

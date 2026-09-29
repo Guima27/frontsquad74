@@ -17,14 +17,16 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
 
         builder.Property(u => u.Nome)
             .HasColumnName("nome")
-            .HasColumnType("varchar");
+            .HasColumnType("varchar(150)");
 
         builder.Property(u => u.Email)
             .HasColumnName("email")
-            .HasColumnType("varchar");
+            .HasColumnType("varchar(255)");
 
         builder.HasIndex(u => u.Email)
             .IsUnique();
+
+        builder.HasIndex(u => u.GrupoEmpresaId);
 
         builder.Property(u => u.CodigoExterno)
             .HasColumnName("codigo_externo")
@@ -38,8 +40,16 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
 
         builder.Property(u => u.Papel)
             .HasColumnName("papel")
-            .HasColumnType("varchar")
+            .HasColumnType("varchar(20)")
             .HasConversion<string>();
+
+        builder.Property(u => u.CriadoEm)
+            .HasColumnName("criado_em")
+            .HasColumnType("timestamp");
+
+        builder.Property(u => u.AtualizadoEm)
+            .HasColumnName("atualizado_em")
+            .HasColumnType("timestamp");
 
         builder.HasOne(u => u.GrupoEmpresa)
             .WithMany(g => g.Usuarios)

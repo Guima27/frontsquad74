@@ -1,182 +1,178 @@
 # SupportAtos API
 
-Backend de um sistema de suporte técnico multiplataforma (portal, e-mail e WhatsApp — **apenas o portal está no escopo desta fase**).
+Backend do sistema de suporte (portal do cliente + painel do atendente). Se você é do squad e só quer **rodar e testar**, segue o roteiro abaixo — dá uns 10 minutos na primeira vez e 2 minutos no dia a dia.
 
 Stack: **C# / .NET 10**, **Clean Architecture**, **EF Core 10** + **PostgreSQL**.
 
-## Requisitos
+> Todos os comandos desta página assumem que seu terminal está em `src/backend/`.
 
-- .NET SDK 10
-- PostgreSQL local (instalação nativa) **ou** Docker (para o `docker-compose.yml` opcional)
-- `dotnet-ef` global tool:
+## O que você precisa
 
-```bash
-dotnet tool install --global dotnet-ef
-```
+- [.NET SDK 10](https://dotnet.microsoft.com/download)
+- PostgreSQL rodando (nativo na `5432` **ou** Docker na `5433` — escolha um, ver passo 1)
+- Node 20+ (só se for rodar o frontend junto)
+- Tool do EF Core (uma vez só):
+  ```bash
+  dotnet tool install --global dotnet-ef
+  ```
 
-## Como rodar (do zero, passo a passo)
+## Primeira vez (do zero)
 
-### 1. Criar o banco de dados
+### 1. Suba o banco
 
-Com um PostgreSQL nativo rodando, crie o banco que a API usa:
-
+**Opção A — Postgres nativo (recomendado no dia a dia):**
 ```bash
 psql -h localhost -p 5432 -U postgres -c "CREATE DATABASE supportatos;"
 ```
 
-> Já existe um `docker-compose.yml` (porta 5433, usuário `admin`, senha padrão `supportatos` — sobrescreva com `POSTGRES_PASSWORD=...`) como alternativa ao Postgres nativo. A connection string fica em `appsettings.json` (`DefaultConnection`) e é **sobrescrita em dev** por `appsettings.Development.json` com os dados do seu Postgres local.
+**Opção B — Docker (bom para testes):**
+```bash
+docker compose up -d   # sobe na porta 5433, usuário admin / senha supportatos
+```
 
-### 2. Configurar a connection string (dev)
+### 2. Guarde os segredos na sua máquina (não vão para o git)
 
-O `appsettings.Development.json` versionado mantém a estrutura com **placeholders** (`__SUA_SENHA__`, `__SUA_API_KEY__`). Preencha os valores reais via **User Secrets** (ficam fora do repositório, na sua máquina):
+O `appsettings.Development.json` versionado tem só placeholders (`__SUA_SENHA__`). Os valores reais ficam no **User Secrets**, fora do repositório:
 
 ```bash
-# Crie a secret id (já existe se você clonou depois do passo da API)
 cd src/SupportAtos.Api
 dotnet user-secrets init
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=supportatos;Username=postgres;Password=SUA_SENHA"
-dotnet user-secrets set "Sso:ApiKey" "SUA_API_KEY"
+dotnet user-secrets set "Sso:ApiKey" "QUALQUER_VALOR_LOCAL"
 ```
 
-> A API carrega User Secrets automaticamente quando roda em `Development`.
+Agora a chave pública que valida os tokens de dev (é pública, pode versionar — mas o jeito mais seguro é via secrets também):
 
-### 3. Aplicar as migrations
+```powershell
+# no PowerShell, ainda em src/backend/
+$pem = Get-Content -LiteralPath "tools\SupportAtos.TokenMinter\keys\dev-public.pem" -Raw
+dotnet user-secrets set "Sso:PublicKeyPem" $pem --project src/SupportAtos.Api
+```
+
+> Se a pasta `keys/` estiver vazia, gere o par antes: `dotnet run --project tools/SupportAtos.TokenMinter -- generate`
+
+### 3. Crie as tabelas
 
 ```bash
 dotnet ef database update --project src/SupportAtos.Infrastructure --startup-project src/SupportAtos.Api
 ```
 
-### 4. Rodar a aplicação
+### 4. Compile
 
 ```bash
-dotnet run --project src/SupportAtos.Api
+dotnet build SupportAtos.slnx
 ```
 
-O Swagger fica em `http://localhost:5177/swagger` (dev, perfil `http` do `dotnet run`; o perfil `https` usa a porta 5176).
+### 5. Rode a API
 
-### 5. Seed (automático em ambiente Development)
+Aqui tem um detalhe: em máquina com OneDrive + política de aplicativos, o `dotnet run` pode ser bloqueado. O jeito que sempre funciona é rodar a DLL direto:
 
-Ao iniciar em `Development`, um seeder insere **grupos de empresa** de teste (ids `1` e `2`) se a tabela estiver vazia (`DevelopmentDbSeeder`). Existe também `database/seed.sql` (manual) com grupo, SLAs e um usuário de exemplo.
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+Set-Location -LiteralPath "src\SupportAtos.Api\bin\Debug\net10.0"
+dotnet SupportAtos.Api.dll
+```
 
-## Endpoints
+Abra `http://localhost:5177/swagger`. Se abriu, o backend está no ar. 🎉
 
-| Método | Rota                     | Descrição                                          |
-| ------ | ------------------------ | -------------------------------------------------- |
-| POST   | `/api/usuarios`          | Cadastra usuário (`nome`, `email`, `grupoEmpresaId`, `papel`) |
-| GET    | `/api/usuarios/{id}`     | Consulta usuário por id (inclui nome do grupo)     |
-| GET    | `/api/usuarios?grupoEmpresaId={id}` | Lista usuários de um grupo empresa         |
-| POST   | `/api/chamados`          | Abre chamado (`produto`, `categoria`, `mensagemInicial`) |
-| GET    | `/api/chamados/{codigoPublico}` | Consulta chamado + interações públicas       |
+### 6. Gere seu token e teste
 
-## Autenticação
+Em **outra janela** do PowerShell (o backend fica preso na primeira):
 
-- **JWT RS256 (SSO do portal)** — token enviado no header `Authorization: Bearer <token>`. Valida assinatura (chave PEM em `Sso:PublicKeyPem` ou JWKS em `Sso:JwksUrl`), `iss`, `aud` e validade. No primeiro acesso, o usuário/grupo da empresa do portal são **provisionados** automaticamente a partir das claims `sub`, `email`, `name`, `grupo_empresa_id`, `grupo_empresa_nome`, `role`.
-- **API Key (máquina a máquina)** — header `X-Api-Key`, para integrações (ex.: n8n). Se o header existir, ele tem precedência sobre o JWT.
-- **Authorization:** `FallbackPolicy` exige autenticação em todas as rotas; papéis administrativos via `[Authorize(Roles = ...)]` (`Admin`, `Supervisor`, `Agente`); `POST /api/chamados` exige a policy `UsuarioPortal`.
-
-### Gerar token de dev para o Swagger
-
-O tool `tools/SupportAtos.TokenMinter` gera o keypair e emite JWT com as claims esperadas pela API:
-
-```bash
-# 1) (uma vez) gera tools/SupportAtos.TokenMinter/keys/dev-private.pem e dev-public.pem,
-#    e mostra a chave pública em PUBLIC_PEM_BEGIN/END
-dotnet run --project tools/SupportAtos.TokenMinter -- generate
-
-# 2) copie a chave pública exibida para Sso:PublicKeyPem no appsettings.Development.json
-#    (o script abaixo já imprime o token)
+```powershell
+Set-Location -LiteralPath "<caminho>\src\backend"
 .\scripts\mint-token.ps1 -Sub portal-admin -Email admin@atos.com -Name "Admin" -GrupoId grupo-1 -GrupoNome "Grupo Norte" -Admin
 ```
 
-> A **chave privada** (`keys/dev-private.pem`) não deve ser versionada (está no `.gitignore`). Cada dev pode gerar o seu próprio keypair; se regenerar, atualize também o `Sso:PublicKeyPem`.
+O script copia o JWT para a área de transferência. No Swagger, clique em **Authorize**, cole `Bearer <token>` e chame `GET /api/usuarios/1` — esperado: **200**.
 
-Observações:
+## Todo dia (rotina de 2 minutos)
 
-- Códigos HTTP: `201` criação, `400` validação (**inclui `grupoEmpresaId` inexistente no POST** e enum inválido), `401` não autenticado, `403` sem papel, `404` não encontrado, `409` conflito (e-mail duplicado). Erros retornam `ProblemDetails`.
+O segredo já está salvo, o banco já existe. Só isso:
+
+```powershell
+# Janela 1 — backend
+Set-Location -LiteralPath "<caminho>\src\backend"
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+Set-Location -LiteralPath "src\SupportAtos.Api\bin\Debug\net10.0"
+dotnet SupportAtos.Api.dll
+
+# Janela 2 — token novo (só se o de ontem expirou; padrão 60 min) + frontend
+Set-Location -LiteralPath "<caminho>\src\backend"
+.\scripts\mint-token.ps1 -Sub portal-agente -Email agente@atos.com -Name "Agente" -GrupoId grupo-1 -GrupoNome "Grupo Norte"
+Set-Location -LiteralPath "<caminho>\src\frontend"
+npm run dev   # http://localhost:5173
+```
+
+## O banco em 30 segundos
+
+- **PostgreSQL**, acesso via EF Core. O SQL em `database/` é **legado** — a fonte oficial do schema são as **Migrations** (`src/SupportAtos.Infrastructure/Migrations`).
+- Tabelas principais: `grupo_empresa`, `usuario`, `chamado`, `interacao`, `anexo`, `sla_config`, `log_auditoria` (tudo em `snake_case`, enums como texto).
+- No primeiro login com JWT, a API **cria sozinha** o usuário e o grupo a partir das claims do token (provisionamento JIT). Não precisa cadastrar ninguém na mão.
+- Em `Development`, um seeder garante grupos de teste se a tabela estiver vazia.
+
+
+## Endpoints (dev)
+
+| Método | Rota | Quem pode |
+|---|---|---|
+| GET | `/health` | anônimo |
+| POST | `/api/usuarios` | JWT + `Admin` |
+| GET | `/api/usuarios/{id}` | JWT + `Admin,Supervisor,Agente` |
+| GET | `/api/usuarios?grupoEmpresaId=` | JWT + `Admin,Supervisor,Agente` |
+| POST | `/api/chamados` | JWT (policy `UsuarioPortal`) |
+| GET | `/api/chamados` | JWT (fila; cliente vê só o próprio grupo) |
+| GET | `/api/chamados/{codigo}` | JWT (cliente vê só públicas; equipe vê notas internas) |
+| POST | `/api/chamados/{codigo}/interacoes` | JWT (responder; `Publica` ou `NotaInterna`) |
+| PATCH | `/api/chamados/{codigo}/status` | JWT (cliente só reabre `Resolvido→Aberto`) |
+| PATCH | `/api/chamados/{codigo}/atribuir` | JWT + `Admin,Supervisor,Agente` (manual ou `automatico: true`) |
+
+Respostas: `201` criou, `400` validação, `401` sem token, `403` sem papel, `404` não achou, `409` e-mail duplicado. Erros vêm em `ProblemDetails`.
+
+## Autenticação (resumo)
+
+- **JWT RS256 do portal** (`Authorization: Bearer <token>`): valida assinatura + `iss` + `aud` + validade. É o que o frontend e o Swagger usam.
+- **API Key** (`X-Api-Key`): só para máquina-a-máquina (ex.: n8n). Não abre rotas de usuário.
+- Token de dev: `.\scripts\mint-token.ps1` (usa a chave privada local em `tools/.../keys/`, que **nunca** vai para o git).
 
 ## Estrutura de pastas
 
 ```
 SupportAtos.slnx
 ├── src/
-│   ├── SupportAtos.Domain/           # Entidades ricas, enums, exceções de domínio. Não depende de nada.
-│   │   └── Entities/                 # Usuario, GrupoEmpresa, Chamado, Interacao, Anexo, SlaCategoria, LogAuditoria
-│   │   └── Enums/                    # PapelUsuario, StatusChamado, TipoInteracao, Prioridade
-│   ├── SupportAtos.Application/      # Casos de uso, DTOs, interfaces (repositórios, unit of work, ICurrentUserProvider). Depende só de Domain.
-│   │   └── UseCases/                 # CriarChamadoUseCase, ConsultarChamadoUseCase, CadastrarUsuarioUseCase, ConsultarUsuarioUseCase, ListarUsuariosPorGrupoUseCase
-│   │   └── Ports/                    # IChamadoRepository, IUsuarioRepository, IGrupoEmpresaRepository, ISlaCategoriaRepository
-│   ├── SupportAtos.Infrastructure/   # EF Core, Migrations, repositórios. Depende de Application e Domain.
-│   │   └── Persistence/              # SupportAtosDbContext, Configurations (Fluent API), Migrations
-│   │   └── Repositories/             # Implementações concretas dos repositórios + UnitOfWork
-│   └── SupportAtos.Api/              # Controllers, Program.cs, DI, Swagger, middlewares. Só orquestra casos de uso.
-│       └── Controllers/              # ChamadosController, UsuariosController
-│       └── Authentication/           # JWT RS256 (SSO) + API key, leitura de claims, provisionamento do usuário do portal
-│       └── Providers/                # JwtCurrentUserProvider (usuário atual via claims do JWT)
-│       └── Middleware/               # ExceptionHandlingMiddleware (traduz exceções para ProblemDetails)
-├── tools/
-│   └── SupportAtos.TokenMinter/      # Gera keypair RSA e emite/verifica JWT de dev (generate/token/verify)
-├── scripts/
-│   └── mint-token.ps1                # Emite um JWT de dev e copia para a área de transferência
-└── tests/
-    └── SupportAtos.Application.Tests # Testes de domínio e de casos de uso (xUnit, sem mock — fakes simples)
-    └── SupportAtos.Integration.Tests # Testes de integração da API (WebApplicationFactory + Postgres)
+│   ├── SupportAtos.Domain/           # Regras puras, entidades, enums. Não depende de nada.
+│   ├── SupportAtos.Application/      # Casos de uso, DTOs, contratos (Ports). Depende só de Domain.
+│   ├── SupportAtos.Infrastructure/   # EF Core, Migrations, repositórios. Depende de Application + Domain.
+│   └── SupportAtos.Api/              # Controllers, DI, Swagger, middlewares. Só orquestra.
+│       ├── Controllers/              # ChamadosController, UsuariosController
+│       ├── Authentication/           # JWT RS256 + API key, leitura de claims, provisioning
+│       └── Middleware/               # Traduz exceções para ProblemDetails
+├── tools/SupportAtos.TokenMinter/    # Gera keypair e emite/verifica JWT de dev
+├── scripts/mint-token.ps1            # Atalho para gerar token e copiar (Ctrl+V)
+└── tests/                            # Application.Tests (unidade, sem banco) + Integration.Tests (precisa do Postgres)
 ```
 
-## Regras de dependência (Clean Architecture)
+Regra de ouro da Clean Architecture aqui: Controller **nunca** fala com o banco direto — ele chama um caso de uso, que chama um repositório.
 
-- `Domain` não depende de nada.
-- `Application` depende apenas de `Domain`.
-- `Infrastructure` depende de `Application` e `Domain`.
-- `Api` depende de todos na camada de registro (DI), mas os Controllers **nunca chamam `Infrastructure` diretamente** — eles recebem casos de uso por injeção de dependência.
+## Segredos (leia antes do primeiro commit)
 
-## Onde colocar cada tipo de código
-
-| Tipo de código                                  | Camada                              |
-| ----------------------------------------------- | ----------------------------------- |
-| Regra de negócio pura (status, prazos, validações de domínio) | `Domain/Entities`                  |
-| Enum dos valores fixos (papel, status, prioridade, tipo)       | `Domain/Enums`                     |
-| Ação de negócio orquestrada (ex.: "abrir chamado")             | `Application/UseCases`             |
-| DTO de entrada/saída da API                     | `Application/DTOs`                  |
-| Contrato que o EF/banco precisa implementar      | `Application/Ports`                |
-| Mapeamento de tabela/coluna (Fluent API)         | `Infrastructure/Persistence/Configurations` |
-| Query SQL / acesso a dados usando EF             | `Infrastructure/Repositories`      |
-| Endpoint HTTP (rotas, status codes)              | `Api/Controllers`                  |
-| Configuração de DI do projeto                   | `DependencyInjection.cs` de cada camada |
-
-## Convenções
-
-- Nomes de tabelas e colunas em **snake_case** (idênticos ao schema de referência).
-- Enums persistidos como **string** no banco (`Aberto`, `Cliente`, `Publica`, ...).
-- Código público do chamado no formato `SA-XXXXXXXXX` (gerado automaticamente).
-- `sla_prazo = criado_em + tempo_resolucao` (horas).
-
-## Fora do escopo desta fase (pontos de extensão)
-
-Validação do JWT por **JWKS em produção** (hoje usa `Sso:PublicKeyPem` em dev; o suporte a `Sso:JwksUrl` já existe no `AuthenticationSetup`), rotação de chaves, webhooks, jobs de SLA, upload de anexos, canais e-mail/WhatsApp e n8n.
-
-## Segredos / boas práticas para o GitHub
-
-- **Nunca commitar:** senhas, API keys, connection strings reais ou a chave privada RSA de dev (`tools/SupportAtos.TokenMinter/keys/`). Tudo isso está no `.gitignore`.
-- Em **dev** os valores reais vão para User Secrets (`dotnet user-secrets set ...`) — ver seção "Configurar a connection string (dev)".
-- Em **outros ambientes** use variáveis de ambiente configuradas na plataforma de deploy (ex.: `ConnectionStrings__DefaultConnection`, `Sso__ApiKey`).
-- Testes de integração: a conexão aponta para o Postgres do docker-compose (porta 5433) ou sobrescreva com a variável `SUPPORTATOS_TEST_CONNECTION`.
+- **Nunca commitar:** senhas, API keys, connection strings reais, `keys/dev-private.pem`. Tudo já está no `.gitignore`.
+- Dev → User Secrets. Outros ambientes → variáveis de ambiente (`ConnectionStrings__DefaultConnection`, `Sso__ApiKey`).
+- Testes de integração usam o Postgres do Docker (`5433`) ou `SUPPORTATOS_TEST_CONNECTION`.
 
 ## Comandos úteis
 
 ```bash
-# Nova migration (após alterar entidades/mapeamentos)
+# Nova migration (depois de mexer em entidade/mapeamento)
 dotnet ef migrations add NomeDaMigration --project src/SupportAtos.Infrastructure --startup-project src/SupportAtos.Api
 
 # Aplicar migrations
 dotnet ef database update --project src/SupportAtos.Infrastructure --startup-project src/SupportAtos.Api
 
-# Rodar a API (dev)
-dotnet run --project src/SupportAtos.Api
+# Build + testes rápidos (sem banco)
+dotnet build SupportAtos.slnx
+dotnet test tests/SupportAtos.Application.Tests
 
-# Gerar keypair de dev e emitir token para o Swagger
-dotnet run --project tools/SupportAtos.TokenMinter -- generate
-.\scripts\mint-token.ps1 -Sub portal-admin -Email admin@atos.com -Name "Admin" -GrupoId grupo-1 -GrupoNome "Grupo Norte" -Admin
-
-# Rodar os testes (integração precisa do Postgres, ver "Segredos")
+# Testes de integração (precisa do Postgres na 5433)
 dotnet test
 ```

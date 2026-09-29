@@ -19,7 +19,8 @@ public class ChamadoDomainTests
         Assert.Equal(StatusChamado.Aberto, chamado.Status);
         Assert.Equal(Prioridade.Alta, chamado.Prioridade);
         Assert.Equal(sla.Id, chamado.SlaCategoriaId);
-        Assert.Equal(chamado.CriadoEm.AddHours(sla.TempoResolucao), chamado.SlaPrazo);
+        Assert.Equal(chamado.CriadoEm.AddMinutes(sla.TempoResolucao), chamado.SlaPrazo);
+        Assert.Equal(chamado.CriadoEm.AddMinutes(sla.TempoResposta), chamado.SlaPrazoResposta);
         Assert.Null(chamado.FechadoEm);
     }
 

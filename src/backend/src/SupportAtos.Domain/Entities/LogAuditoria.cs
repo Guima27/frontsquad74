@@ -8,7 +8,7 @@ public class LogAuditoria
 
     public Chamado? Chamado { get; private set; }
 
-    public int UsuarioId { get; private set; }
+    public int? UsuarioId { get; private set; }
 
     public Usuario? Usuario { get; private set; }
 
@@ -26,7 +26,7 @@ public class LogAuditoria
     {
     }
 
-    private LogAuditoria(int chamadoId, int usuarioId, string acao, string? campoAlterado, string? valorAnterior, string? valorNovo, DateTime data)
+    private LogAuditoria(int chamadoId, int? usuarioId, string acao, string? campoAlterado, string? valorAnterior, string? valorNovo, DateTime data)
     {
         ChamadoId = chamadoId;
         UsuarioId = usuarioId;
@@ -39,7 +39,7 @@ public class LogAuditoria
 
     public static LogAuditoria Registrar(
         int chamadoId,
-        int usuarioId,
+        int? usuarioId,
         string acao,
         string? campoAlterado = null,
         string? valorAnterior = null,
@@ -49,11 +49,6 @@ public class LogAuditoria
         if (chamadoId <= 0)
         {
             throw new Exceptions.DomainException("O chamado do log de auditoria é obrigatório.");
-        }
-
-        if (usuarioId <= 0)
-        {
-            throw new Exceptions.DomainException("O usuário do log de auditoria é obrigatório.");
         }
 
         if (string.IsNullOrWhiteSpace(acao))
