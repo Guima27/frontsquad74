@@ -69,6 +69,8 @@ Aqui tem um detalhe: em máquina com OneDrive + política de aplicativos, o `dot
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = "Development"
+# Obrigatório rodando pela DLL: ela ignora o launchSettings e sem isso sobe na porta 5000 (o frontend espera a 5177)
+$env:ASPNETCORE_URLS = "http://localhost:5177"
 Set-Location -LiteralPath "src\SupportAtos.Api\bin\Debug\net10.0"
 dotnet SupportAtos.Api.dll
 ```
@@ -91,9 +93,11 @@ O script copia o JWT para a área de transferência. No Swagger, clique em **Aut
 O segredo já está salvo, o banco já existe. Só isso:
 
 ```powershell
-# Janela 1 — backend
+# Janela 1 — backend (mate instâncias velhas antes: elas seguram a porta e respondem com chave/token antigos)
+Get-Process -Name dotnet -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Set-Location -LiteralPath "<caminho>\src\backend"
 $env:ASPNETCORE_ENVIRONMENT = "Development"
+$env:ASPNETCORE_URLS = "http://localhost:5177"
 Set-Location -LiteralPath "src\SupportAtos.Api\bin\Debug\net10.0"
 dotnet SupportAtos.Api.dll
 
@@ -103,6 +107,12 @@ Set-Location -LiteralPath "<caminho>\src\backend"
 Set-Location -LiteralPath "<caminho>\src\frontend"
 npm run dev   # http://localhost:5173
 ```
+
+### Se algo der errado (2 min)
+
+- Fila/Dashboard com "Erro interno do servidor" → o backend não está na 5177. Confira `http://localhost:5177/health` (tem que dar `Healthy`); o proxy do frontend só fala com a 5177.
+- `401` no Swagger/front → token expirou (padrão 60 min, gere outro no passo 6) ou tem instância antiga rodando (mate os `dotnet` e suba de novo).
+- Backend nem sobe ("address already in use") → processo antigo segurando a porta; rode o `Stop-Process` da Janela 1 e tente de novo.
 
 ## O banco em 30 segundos
 
