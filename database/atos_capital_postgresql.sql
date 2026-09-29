@@ -1,5 +1,9 @@
 -- =========================================================
--- ATOS CAPITAL - PostgreSQL
+-- ATOS CAPITAL - PostgreSQL (ARQUIVO LEGADO / REFERÊNCIA)
+-- Fonte oficial do schema: EF Core Migrations em
+-- src/backend/src/SupportAtos.Infrastructure/Migrations.
+-- Não aplique este .sql junto com `dotnet ef database update`
+-- (nomes como sla_config/BIGSERIAL divergem do modelo atual).
 -- =========================================================
 
 
