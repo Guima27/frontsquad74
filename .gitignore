@@ -1,32 +1,4 @@
-# ===== .NET / C# =====
-bin/
-obj/
-*.user
-*.suo
-.vs/
-.vscode/
-artifacts/
-TestResults/
-*.nupkg
-
-# ===== Node / React =====
-node_modules/
-dist/
-build/
-.vite/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# ===== Ambiente / IDE =====
-.env
-.env.*
-!.env.example
+node_modules
+dist
 .DS_Store
-Thumbs.db
 *.local
-
-# ===== Docker (mantidos os exemplos) =====
-!*.example
-!*.template
