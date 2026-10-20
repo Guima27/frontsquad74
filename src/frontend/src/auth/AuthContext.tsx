@@ -2,16 +2,8 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import { setToken } from '../api/client';
 import type { PapelUsuario, SessaoUsuario } from '../types/usuario';
 
-export function limparToken(raw: string): string {
-  const trimmed = raw.trim();
-  const match = trimmed.match(/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/);
-  if (match) return match[0];
-  return trimmed.replace(/^Bearer\s+/i, '').replace(/[\r\n\s'"]/g, '');
-}
-
 function decodificarJwt(token: string): SessaoUsuario {
-  const t = limparToken(token);
-  const [, payload] = t.split('.');
+  const [, payload] = token.split('.');
   if (!payload) throw new Error('Token inválido: sem payload.');
   const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
   const papel = String(json.role ?? json.papel ?? '') as PapelUsuario;
@@ -42,15 +34,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setTok] = useState<string | null>(null);
   const [sessao, setSessao] = useState<SessaoUsuario | null>(null);
 
-  const entrar = useCallback((raw: string) => {
-    const t = limparToken(raw);
-    const s = decodificarJwt(t);
+  const entrar = useCallback((t: string) => {
+    const s = decodificarJwt(t.trim());
     if (s.exp && s.exp * 1000 < Date.now()) throw new Error('Token expirado.');
     if (s.papel === 'Cliente') {
       throw new Error('Este painel é para a equipe interna (Agente/Supervisor/Admin).');
     }
-    setToken(t);
-    setTok(t);
+    setToken(t.trim());
+    setTok(t.trim());
     setSessao(s);
   }, []);
 

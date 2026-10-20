@@ -3,11 +3,11 @@
 
 INSERT INTO grupo_empresa (nome) VALUES ('Empresa Demo') ON CONFLICT DO NOTHING;
 
-INSERT INTO sla_config (produto, categoria, prioridade, tempo_resposta_min, tempo_resolucao_min, ativo)
+INSERT INTO sla_categoria (produto, categoria, prioridade, tempo_resposta, tempo_resolucao)
 VALUES
-    ('Portal', 'Login', 'Alta', 60, 240, true),
-    ('Portal', 'Erro de sistema', 'Media', 120, 480, true),
-    ('Portal', 'Duvida', 'Baixa', 240, 1440, true)
+    ('Portal', 'Login', 'Alta', 1, 4),
+    ('Portal', 'Erro de sistema', 'Media', 2, 8),
+    ('Portal', 'Duvida', 'Baixa', 4, 24)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO usuario (nome, email, grupo_empresa_id, papel)
