@@ -78,9 +78,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseCors("Frontend");
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapControllers();
 
