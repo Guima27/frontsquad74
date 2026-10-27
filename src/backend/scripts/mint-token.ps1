@@ -3,8 +3,8 @@
 #
 # Requisitos:
 #   - Chave privada gerada em tools/SupportAtos.TokenMinter/keys (rode o comando `generate` antes,
-#     se ainda nao existir). O PEM publico correspondente ja foi colocado em
-#     src/SupportAtos.Api/appsettings.Development.json (Sso:PublicKeyPem).
+#     se ainda nao existir). Configure o PEM publico correspondente em Sso:PublicKeyPem
+#     no User Secrets. Confira com: dotnet run --project src/SupportAtos.Api -- --check-dev-auth
 #   - A API deve estar rodando com ASPNETCORE_ENVIRONMENT=Development.
 #
 # Exemplos:

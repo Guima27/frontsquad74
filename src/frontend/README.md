@@ -44,7 +44,11 @@ Set-Location -LiteralPath "<caminho>\src\frontend"
 npm run dev
 ```
 
-Token expirou (padrão 60 min) ou deu F5? O JWT fica **só em memória** de propósito — gere outro com o `mint-token.ps1` e cole de novo. É normal, não é bug.
+O JWT fica **só em memória**. Após F5, cole novamente o mesmo token se ainda estiver válido; se expirou (padrão 60 min), gere outro com `mint-token.ps1`.
+
+O login manual agora consulta `GET /api/usuarios/me` antes de anunciar sucesso. Enquanto aguarda, mostra “Validando acesso…” e bloqueia novos envios. Aceita o JWT sozinho ou com o prefixo `Bearer`. Nome, papel e IDs internos vêm da API, sem decodificação local para estabelecer a identidade.
+
+Um 401 de uma requisição da sessão atual ou o fim da validade encerra a sessão e apresenta aviso no login. Respostas antigas de outra sessão não encerram um login novo. A contagem usa a validade e o relógio retornados pela API. Respostas 403, erros de rede e erros de servidor mantêm a sessão; o usuário pode tentar novamente. Não há renovação automática ou persistência do token no disco.
 
 ## O que tem em cada tela
 

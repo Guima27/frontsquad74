@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Card, CardContent, TextField } from '@mui/material';
 import { toast } from 'sonner';
@@ -6,20 +6,29 @@ import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/feedback';
 
 export function Login() {
-  const { entrar } = useAuth();
+  const { entrar, aviso } = useAuth();
   const nav = useNavigate();
   const loc = useLocation() as { state?: { from?: string } };
   const [jwt, setJwt] = useState('');
   const [erro, setErro] = useState('');
+  const [validando, setValidando] = useState(false);
+  const enviando = useRef(false);
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (enviando.current) return;
+    enviando.current = true;
+    setValidando(true);
+    setErro('');
     try {
-      entrar(jwt);
+      await entrar(jwt);
       toast.success('Sessão iniciada.');
       nav(loc.state?.from || '/fila', { replace: true });
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Token inválido.');
+    } finally {
+      enviando.current = false;
+      setValidando(false);
     }
   }
 
@@ -39,7 +48,9 @@ export function Login() {
               placeholder="eyJhbGciOi..."
               aria-label="Token JWT"
               required
+              disabled={validando}
             />
+            {aviso && !erro && <Alert severity="warning" sx={{ mt: 2 }}>{aviso}</Alert>}
             {erro && (
               <Alert severity="error" sx={{ mt: 2 }} role="alert">
                 {erro}
@@ -50,8 +61,8 @@ export function Login() {
               <br />
               Token fica só em memória (não persiste no disco).
             </Alert>
-            <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
-              Entrar
+            <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }} disabled={validando}>
+              {validando ? 'Validando acesso…' : 'Entrar'}
             </Button>
           </form>
         </CardContent>

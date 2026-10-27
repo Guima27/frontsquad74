@@ -64,6 +64,12 @@ return args[0] switch
         var arquivoPrivado = Path.Combine(outDir, "dev-private.pem");
         var arquivoPublico = Path.Combine(outDir, "dev-public.pem");
 
+        if ((File.Exists(arquivoPrivado) || File.Exists(arquivoPublico)) && !args.Contains("--overwrite"))
+        {
+            throw new InvalidOperationException(
+                "Já existe um par de chaves neste diretório. Para rotacionar explicitamente, use generate --overwrite e atualize a chave pública da API. Tokens anteriores deixarão de ser aceitos após a atualização.");
+        }
+
         using var rsa = RSA.Create(2048);
 
         var pemPrivado = rsa.ExportPkcs8PrivateKeyPem();

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SupportAtos.Application.DTOs;
 using SupportAtos.Application.UseCases;
+using SupportAtos.Application.Abstractions;
+using SupportAtos.Api.Authentication;
 
 namespace SupportAtos.Api.Controllers;
 
@@ -22,6 +24,20 @@ public class UsuariosController : ControllerBase
         _cadastrarUsuarioUseCase = cadastrarUsuarioUseCase;
         _consultarUsuarioUseCase = consultarUsuarioUseCase;
         _listarUsuariosPorGrupoUseCase = listarUsuariosPorGrupoUseCase;
+    }
+
+    [HttpGet("me")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "UsuarioPortal")]
+    [ProducesResponseType(typeof(SessaoUsuarioDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult ConsultarSessao([FromServices] ICurrentUser currentUser)
+    {
+        Response.Headers.CacheControl = "no-store";
+        var usuario = currentUser.UsuarioAtual;
+        var expiracao = (DateTime)HttpContext.Items[PortalUserContextItems.ExpiracaoToken]!;
+        return Ok(new SessaoUsuarioDto(
+            usuario.UsuarioIdInterno, usuario.Nome, usuario.Email, usuario.Papel,
+            usuario.GrupoEmpresaIdInterno, usuario.NomeGrupo, expiracao, DateTime.UtcNow));
     }
 
     [HttpPost]

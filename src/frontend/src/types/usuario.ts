@@ -10,11 +10,12 @@ export interface UsuarioDto {
 }
 
 export interface SessaoUsuario {
-  sub: string;
+  usuarioId: number;
   email: string;
   nome: string;
-  grupoEmpresaId: string;
+  grupoEmpresaId: number;
   grupoEmpresaNome: string;
   papel: PapelUsuario;
-  exp?: number;
+  expiraEm: string;
+  servidorEm: string;
 }

@@ -12,6 +12,7 @@ namespace SupportAtos.Api.Authentication;
 
 public static class AuthenticationSetup
 {
+    private const string FalhaProvisionamento = "SupportAtos.FalhaProvisionamento";
     public const string ApiKeyScheme = "ApiKey";
     public const string ApiKeyHeaderName = "X-Api-Key";
 
@@ -108,6 +109,19 @@ public static class AuthenticationSetup
 
             jwt.Events = new JwtBearerEvents
             {
+                OnAuthenticationFailed = context =>
+                {
+                    // Falhas de infraestrutura/provisionamento não são tokens inválidos.
+                    if (context.HttpContext.Items.ContainsKey(FalhaProvisionamento)
+                        || context.Exception.GetBaseException() is HttpRequestException)
+                    {
+                        throw new InvalidOperationException("Falha ao preparar a identidade autenticada.", context.Exception);
+                    }
+
+                    // Também cobre exceções de claims lançadas em OnTokenValidated.
+                    context.Fail(context.Exception);
+                    return Task.CompletedTask;
+                },
                 OnTokenValidated = async context =>
                 {
                     var claimsPortal = PortalIdentityClaimsReader.Ler(context.Principal!, sso.ClaimNames);
@@ -122,7 +136,16 @@ public static class AuthenticationSetup
                         claimsPortal.NomeGrupo,
                         claimsPortal.Papel);
 
-                    var resultado = await provisioning.ProvisionAsync(contextoExterno, context.HttpContext.RequestAborted);
+                    SupportAtos.Application.DTOs.ProvisioningResult resultado;
+                    try
+                    {
+                        resultado = await provisioning.ProvisionAsync(contextoExterno, context.HttpContext.RequestAborted);
+                    }
+                    catch
+                    {
+                        context.HttpContext.Items[FalhaProvisionamento] = true;
+                        throw;
+                    }
 
                     var portal = contextoExterno with
                     {
@@ -141,6 +164,8 @@ public static class AuthenticationSetup
                     }
 
                     context.HttpContext.Items[PortalUserContextItems.Chave] = portal;
+                    context.HttpContext.Items[PortalUserContextItems.ExpiracaoToken] =
+                        DateTime.SpecifyKind(context.SecurityToken.ValidTo, DateTimeKind.Utc);
                 }
             };
         })
