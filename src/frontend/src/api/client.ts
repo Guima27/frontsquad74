@@ -3,12 +3,20 @@ import { ApiError, mensagemAmigavel } from './errors';
 const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 let tokenEmMemoria: string | null = null;
+let versaoSessao = 0;
+const ouvintesSessaoInvalida = new Set<() => void>();
 
 export function setToken(t: string | null) {
   tokenEmMemoria = t;
+  versaoSessao++;
 }
 export function getToken(): string | null {
   return tokenEmMemoria;
+}
+
+export function onSessaoInvalida(ouvinte: () => void): () => void {
+  ouvintesSessaoInvalida.add(ouvinte);
+  return () => { ouvintesSessaoInvalida.delete(ouvinte); };
 }
 
 interface ProblemDetails {
@@ -17,15 +25,16 @@ interface ProblemDetails {
   errors?: string[] | Record<string, string[]>;
 }
 
-export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}, autenticacao?: { token: string }): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
+  const versaoRequisicao = versaoSessao;
+  const token = autenticacao ? autenticacao.token : getToken();
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(init.headers as Record<string, string> | undefined),
     };
-    const token = getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
 
     const res = await fetch(`${BASE_URL}${path}`, {
@@ -34,10 +43,21 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
       signal: controller.signal,
     });
 
+    if (res.status === 401 && !autenticacao && token && versaoRequisicao === versaoSessao) {
+      setToken(null);
+      ouvintesSessaoInvalida.forEach((ouvinte) => ouvinte());
+    }
+
     if (res.status === 204) return undefined as T;
 
     const text = await res.text();
-    const body = text ? (JSON.parse(text) as T & ProblemDetails) : (undefined as T);
+    let body: (T & ProblemDetails) | undefined;
+    try {
+      body = text ? JSON.parse(text) as T & ProblemDetails : undefined;
+    } catch {
+      // Proxies e respostas de erro podem retornar HTML ou texto simples.
+      if (res.ok) throw new ApiError(502, 'Resposta inválida do servidor.');
+    }
 
     if (!res.ok) {
       const b = (body || {}) as ProblemDetails;

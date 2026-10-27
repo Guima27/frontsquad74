@@ -26,7 +26,12 @@ public static class TestTokenFactory
         string grupoEmpresaId,
         string grupoEmpresaNome,
         string papel,
-        TimeSpan? vida = null)
+        TimeSpan? vida = null,
+        string? issuer = null,
+        string? audience = null,
+        SecurityKey? chaveAssinatura = null,
+        string? omitirClaim = null,
+        TimeSpan? inicio = null)
     {
         var agora = DateTime.UtcNow;
         var expira = agora.Add(vida ?? TimeSpan.FromMinutes(5));
@@ -41,12 +46,12 @@ public static class TestTokenFactory
         };
 
         var token = new JwtSecurityToken(
-            issuer: Issuer,
-            audience: Audience,
-            claims: claims,
-            notBefore: expira.AddMinutes(-5),
+            issuer: issuer ?? Issuer,
+            audience: audience ?? Audience,
+            claims: claims.Where(c => c.Type != omitirClaim),
+            notBefore: inicio.HasValue ? agora.Add(inicio.Value) : expira.AddMinutes(-5),
             expires: expira,
-            signingCredentials: new SigningCredentials(new RsaSecurityKey(Chave), SecurityAlgorithms.RsaSha256));
+            signingCredentials: new SigningCredentials(chaveAssinatura ?? new RsaSecurityKey(Chave), SecurityAlgorithms.RsaSha256));
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }

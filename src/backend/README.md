@@ -141,6 +141,37 @@ Respostas: `201` criou, `400` validação, `401` sem token, `403` sem papel, `40
 
 ## Autenticação (resumo)
 
+### Login manual validado pela API
+
+O painel só abre a sessão após `GET /api/usuarios/me` retornar 200. O endpoint usa o JWT RS256 e o provisionamento existente, retornando `usuarioId`, `nome`, `email`, `papel`, `grupoEmpresaId`, `grupoEmpresaNome`, `expiraEm` e `servidorEm` (horários UTC), com `Cache-Control: no-store`. Não retorna o token.
+
+Uma identidade `Cliente` válida também pode consultar sua própria sessão; o painel interno aceita somente Agente, Supervisor e Admin. API key não substitui a identidade do usuário neste endpoint.
+
+Token inválido, expirado ou com claims obrigatórias ausentes retorna 401. Falha de infraestrutura durante o provisionamento retorna erro de servidor, para não apresentar uma indisponibilidade como token inválido. As demais operações continuam validando JWT e permissões a cada requisição.
+
+Para conferir a configuração efetiva, incluindo as sobrescritas de User Secrets e ambiente, execute em `src/backend/`:
+
+```powershell
+dotnet run --project src/SupportAtos.Api -- --check-dev-auth
+```
+
+O diagnóstico exige Development, não inicia o servidor nem acessa o banco e não imprime chaves, tokens ou senhas. Ele compara a chave pública efetiva com `tools/SupportAtos.TokenMinter/keys/dev-public.pem` e identifica a fonte de cada configuração. Se houver divergência, atualize o User Secrets e reinicie a API:
+
+```powershell
+$pem = Get-Content -LiteralPath "tools/SupportAtos.TokenMinter/keys/dev-public.pem" -Raw
+dotnet user-secrets set "Sso:PublicKeyPem" $pem --project src/SupportAtos.Api
+```
+
+O emissor não sobrescreve mais um par existente com `generate`. Rotação exige `generate --overwrite`, atualização da chave pública da API e reinício; tokens assinados pelo par anterior deixam de ser aceitos quando a API passa a confiar no novo par.
+
+Testes do pipeline JWT e deste contrato, com provisionamento substituído e sem PostgreSQL:
+
+```powershell
+dotnet test tests/SupportAtos.Integration.Tests --filter FullyQualifiedName~SessaoApiTests
+```
+
+Esses testes não substituem os testes existentes do provisionamento real com PostgreSQL.
+
 - **JWT RS256 do portal** (`Authorization: Bearer <token>`): valida assinatura + `iss` + `aud` + validade. É o que o frontend e o Swagger usam.
 - **API Key** (`X-Api-Key`): só para máquina-a-máquina (ex.: n8n). Não abre rotas de usuário.
 - Token de dev: `.\scripts\mint-token.ps1` (usa a chave privada local em `tools/.../keys/`, que **nunca** vai para o git).

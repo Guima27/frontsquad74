@@ -8,7 +8,21 @@ using SupportAtos.Application;
 using SupportAtos.Application.Abstractions;
 using SupportAtos.Infrastructure;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args.Where(arg => arg != "--check-dev-auth").ToArray());
+
+if (args.Contains("--check-dev-auth"))
+{
+    if (!builder.Environment.IsDevelopment())
+    {
+        Console.Error.WriteLine("O diagnóstico --check-dev-auth exige ambiente Development.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    Environment.ExitCode = DevAuthenticationDiagnostic.Executar(
+        builder.Configuration, builder.Environment.ContentRootPath, Console.Out);
+    return;
+}
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -78,9 +92,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors("Frontend");
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapControllers();
 

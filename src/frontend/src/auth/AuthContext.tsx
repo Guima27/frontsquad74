@@ -1,30 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { setToken } from '../api/client';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { onSessaoInvalida, setToken } from '../api/client';
 import type { PapelUsuario, SessaoUsuario } from '../types/usuario';
-
-function decodificarJwt(token: string): SessaoUsuario {
-  const [, payload] = token.split('.');
-  if (!payload) throw new Error('Token inválido: sem payload.');
-  const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
-  const papel = String(json.role ?? json.papel ?? '') as PapelUsuario;
-  if (!['Agente', 'Supervisor', 'Admin', 'Cliente'].includes(papel)) {
-    throw new Error('Claim role inválida no token.');
-  }
-  return {
-    sub: String(json.sub ?? ''),
-    email: String(json.email ?? ''),
-    nome: String(json.name ?? json.nome ?? ''),
-    grupoEmpresaId: String(json.grupo_empresa_id ?? ''),
-    grupoEmpresaNome: String(json.grupo_empresa_nome ?? ''),
-    papel,
-    exp: typeof json.exp === 'number' ? json.exp : undefined,
-  };
-}
+import { agendarExpiracao, tempoRestanteSessao, validarSessao } from './session';
 
 interface AuthState {
   token: string | null;
   sessao: SessaoUsuario | null;
-  entrar: (token: string) => void;
+  aviso: string;
+  entrar: (token: string) => Promise<void>;
   sair: () => void;
 }
 
@@ -33,25 +16,48 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setTok] = useState<string | null>(null);
   const [sessao, setSessao] = useState<SessaoUsuario | null>(null);
+  const [aviso, setAviso] = useState('');
+  const tentativa = useRef(0);
+  const limiteSessao = useRef(0);
 
-  const entrar = useCallback((t: string) => {
-    const s = decodificarJwt(t.trim());
-    if (s.exp && s.exp * 1000 < Date.now()) throw new Error('Token expirado.');
-    if (s.papel === 'Cliente') {
-      throw new Error('Este painel é para a equipe interna (Agente/Supervisor/Admin).');
-    }
-    setToken(t.trim());
-    setTok(t.trim());
-    setSessao(s);
-  }, []);
-
-  const sair = useCallback(() => {
+  const limpar = useCallback((mensagem = '') => {
+    tentativa.current++;
     setToken(null);
     setTok(null);
     setSessao(null);
+    setAviso(mensagem);
   }, []);
 
-  const value = useMemo(() => ({ token, sessao, entrar, sair }), [token, sessao, entrar, sair]);
+  const expirar = useCallback(() => {
+    limpar('Sessão expirada ou inválida. Faça login novamente.');
+  }, [limpar]);
+
+  useEffect(() => onSessaoInvalida(expirar), [expirar]);
+
+  useEffect(() => {
+    if (!sessao) return;
+    return agendarExpiracao(limiteSessao.current - performance.now(), expirar);
+  }, [sessao, expirar]);
+
+  useEffect(() => () => { tentativa.current++; setToken(null); }, []);
+
+  const entrar = useCallback(async (valor: string) => {
+    const atual = ++tentativa.current;
+    const candidato = valor.trim().replace(/^Bearer\s+/i, '').trim();
+    const inicio = performance.now();
+    const identidade = await validarSessao(candidato);
+    if (atual !== tentativa.current) throw new Error('Tentativa de login cancelada.');
+    // Desconta conservadoramente o tempo da validação e não depende do relógio local.
+    limiteSessao.current = inicio + tempoRestanteSessao(identidade);
+    if (limiteSessao.current <= performance.now()) throw new Error('Token expirado.');
+    setToken(candidato);
+    setTok(candidato);
+    setSessao(identidade);
+    setAviso('');
+  }, []);
+
+  const sair = useCallback(() => limpar(), [limpar]);
+  const value = useMemo(() => ({ token, sessao, aviso, entrar, sair }), [token, sessao, aviso, entrar, sair]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
