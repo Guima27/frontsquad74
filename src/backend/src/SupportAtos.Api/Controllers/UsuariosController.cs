@@ -27,7 +27,8 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpGet("me")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "UsuarioPortal")]
+    // [AUTH-DESATIVADA] Proteção da sessão desativada temporariamente; usa o usuário mock.
+    // [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "UsuarioPortal")]
     [ProducesResponseType(typeof(SessaoUsuarioDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult ConsultarSessao([FromServices] ICurrentUser currentUser)
@@ -41,7 +42,8 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
+    // [AUTH-DESATIVADA] Proteção por papel desativada temporariamente.
+    // [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
     [ProducesResponseType(typeof(UsuarioDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -53,7 +55,8 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Supervisor,Agente")]
+    // [AUTH-DESATIVADA] Proteção por papel desativada temporariamente.
+    // [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Supervisor,Agente")]
     [ProducesResponseType(typeof(UsuarioDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ConsultarUsuario(int id, CancellationToken cancellationToken)
@@ -63,7 +66,8 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Supervisor,Agente")]
+    // [AUTH-DESATIVADA] Proteção por papel desativada temporariamente.
+    // [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Supervisor,Agente")]
     [ProducesResponseType(typeof(IReadOnlyList<UsuarioDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListarUsuariosPorGrupo([FromQuery] int grupoEmpresaId, CancellationToken cancellationToken)
     {

@@ -56,35 +56,48 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 builder.Services.AddHealthChecks();
 
-// CORS para o frontend do atendente (Vite :5173 em dev). Origens via config:
-// "Frontend:Origins": ["http://localhost:5173"]
+var origensFrontend = builder.Configuration.GetSection("Cors:AllowedOrigins").GetChildren()
+    .Select(origem => origem.Value)
+    .Where(origem => !string.IsNullOrWhiteSpace(origem))
+    .ToArray();
+if (origensFrontend.Length == 0)
+{
+    origensFrontend = new[] { "http://localhost:5173" };
+}
+
 builder.Services.AddCors(options =>
-    options.AddPolicy("Frontend", policy =>
-    {
-        var origins = builder.Configuration.GetSection("Frontend:Origins").Get<string[]>()
-            ?? new[] { "http://localhost:5173" };
-        policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
-    }));
+{
+    options.AddPolicy("FrontendDev", policy =>
+        policy.WithOrigins(origensFrontend!)
+            .AllowAnyHeader()
+            .AllowAnyMethod());
+});
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddSsoAuthentication(builder.Configuration);
+// [AUTH-DESATIVADA] Validação JWT/SSO desativada temporariamente para conectar o frontend sem token.
+// Reative descomentando a linha abaixo e o bloco de autorização/middlewares ao final do arquivo.
+// builder.Services.AddSsoAuthentication(builder.Configuration);
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("UsuarioPortal", policy =>
-        policy.RequireAuthenticatedUser().AddRequirements(new UsuarioPortalRequirement()));
-    options.FallbackPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .Build();
-});
-builder.Services.AddScoped<IAuthorizationHandler, UsuarioPortalAuthorizationHandler>();
+// [AUTH-DESATIVADA] Políticas de autorização (incluindo fallback que exigia usuário autenticado) desativadas.
+// builder.Services.AddAuthorization(options =>
+// {
+//     options.AddPolicy("UsuarioPortal", policy =>
+//         policy.RequireAuthenticatedUser().AddRequirements(new UsuarioPortalRequirement()));
+//     options.FallbackPolicy = new AuthorizationPolicyBuilder()
+//         .RequireAuthenticatedUser()
+//         .Build();
+// });
+// builder.Services.AddScoped<IAuthorizationHandler, UsuarioPortalAuthorizationHandler>();
 
-builder.Services.AddScoped<ICurrentUser, JwtCurrentUserProvider>();
+// [AUTH-DESATIVADA] Usuário real vinha do JWT provisionado; agora usamos um mock local.
+// builder.Services.AddScoped<ICurrentUser, JwtCurrentUserProvider>();
+builder.Services.AddScoped<ICurrentUser, MockCurrentUserProvider>();
 
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseCors("FrontendDev");
 
 if (app.Environment.IsDevelopment())
 {
@@ -92,9 +105,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("Frontend");
-app.UseAuthentication();
-app.UseAuthorization();
+// [AUTH-DESATIVADA] Middlewares de autenticação/autorização desativados temporariamente.
+// Reative junto com AddSsoAuthentication/AddAuthorization e os atributos [Authorize] dos controllers.
+// app.UseAuthentication();
+// app.UseAuthorization();
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapControllers();
 

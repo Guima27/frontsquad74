@@ -8,7 +8,8 @@ using SupportAtos.Domain.Enums;
 namespace SupportAtos.Api.Controllers;
 
 [ApiController]
-[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "UsuarioPortal")]
+// [AUTH-DESATIVADA] Proteção da controller desativada temporariamente.
+// [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "UsuarioPortal")]
 [Route("api/chamados")]
 public class ChamadosController : ControllerBase
 {
@@ -94,7 +95,8 @@ public class ChamadosController : ControllerBase
     }
 
     [HttpPatch("{codigoPublico}/atribuir")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Supervisor,Agente")]
+    // [AUTH-DESATIVADA] Proteção por papel desativada temporariamente.
+    // [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin,Supervisor,Agente")]
     [ProducesResponseType(typeof(ChamadoDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
