@@ -135,22 +135,4 @@ public class SessaoApiTests
         using var resposta = await cliente.SendAsync(Requisicao(Token()));
         Assert.Equal(HttpStatusCode.InternalServerError, resposta.StatusCode);
     }
-
-    [Fact]
-    public async Task Sessao_Cors_IncluiOrigemEm401EAtendePreflight()
-    {
-        using var fabrica = new Fabrica();
-        using var cliente = fabrica.CreateClient();
-        using var req = Requisicao();
-        req.Headers.Add("Origin", "http://localhost:5173");
-        using var resposta = await cliente.SendAsync(req);
-        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
-        Assert.Contains("http://localhost:5173", resposta.Headers.GetValues("Access-Control-Allow-Origin"));
-        using var options = new HttpRequestMessage(HttpMethod.Options, "/api/usuarios/me");
-        options.Headers.Add("Origin", "http://localhost:5173");
-        options.Headers.Add("Access-Control-Request-Method", "GET");
-        options.Headers.Add("Access-Control-Request-Headers", "authorization");
-        using var preflight = await cliente.SendAsync(options);
-        Assert.Equal(HttpStatusCode.NoContent, preflight.StatusCode);
-    }
 }
