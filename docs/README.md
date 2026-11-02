@@ -1,11 +1,10 @@
 # Documentação — Atos Support Hub (Squad 74)
 
-
 > Branch: `docs/documentacao` | Fonte: `Documentação de um Produto de Software v3.0` + `Entrega Parcial - Takeoff`
 > Projeto: Plataforma de suporte técnico integrada e multicanal — Unidade de Bank, Atos Capital.
 > Stack: C#/.NET + React + PostgreSQL + n8n | Método: Kanban + modelagem UML/RUP
 
-**Autores:** João Pedro Alves Seixas; José Henrique Maciel Dantas; Vinícius A. Sampaio; Anthony Santos Costa; Kayone Silva do Nascimento; Danilo Sá Almeida; Marcus Lucas Dantas da Silva; Pedro Henrique Nunes de Melo.
+**Autores:** João Pedro Alves Seixas; José Henrique Maciel Dantas; Vinícius A. Sampaio; Anthony Santos Costa; Kayone Silva do Nascimento; Danilo Sá Almeida; Marcus Lucas Dantas da Silva (@Marcus-dnts); Pedro Henrique Nunes de Melo.
 **Aracaju – 2026 | Docente:** Profa. Ana Paula Gonçalves Serra
 
 ## Índice
@@ -42,6 +41,7 @@ Os diagramas UML (casos de uso Fig.1, classes Fig.2, sequência, atividades, est
 1. Você já está em `docs/documentacao` (saiu da `main`).
 2. Edite os `.md` desta pasta.
 3. Suba por PR:
+
 ```powershell
 git add docs/
 git commit -m "docs: adiciona documentacao em md"
