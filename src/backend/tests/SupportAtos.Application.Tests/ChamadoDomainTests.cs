@@ -88,4 +88,25 @@ public class ChamadoDomainTests
         Assert.Equal(StatusChamado.Aberto, chamado.Status);
         Assert.Null(chamado.FechadoEm);
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Criar_SemTitulo_DeveLancarDomainException(string? titulo)
+    {
+        var excecao = Assert.Throws<DomainException>(() =>
+            Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login", titulo!));
+
+        Assert.Equal("O título é obrigatório.", excecao.Message);
+    }
+
+    [Fact]
+    public void Criar_ComTitulo_DevePersistirTituloAparado()
+    {
+        var chamado = Chamado.Criar(
+            "SA-000000001", 1, 1, CriarSla(), "Portal", "Login", "  Erro ao acessar o portal  ");
+
+        Assert.Equal("Erro ao acessar o portal", chamado.Titulo);
+    }
 }

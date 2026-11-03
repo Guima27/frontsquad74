@@ -43,6 +43,33 @@ public class SupportAtosApiTests : IClassFixture<TestWebAppFactory>
         return requisicao;
     }
 
+    private static HttpContent CorpoChamadoComTitulo(string? titulo, bool incluirTitulo = true)
+    {
+        var corpo = new Dictionary<string, object?>
+        {
+            ["produto"] = "Portal",
+            ["categoria"] = "Login",
+            ["mensagemInicial"] = "Não consigo acessar o sistema."
+        };
+
+        if (incluirTitulo)
+        {
+            corpo["titulo"] = titulo;
+        }
+
+        return JsonContent.Create(corpo);
+    }
+
+    private static HttpRequestMessage RequisicaoChamadoComTitulo(string token, string? titulo, bool incluirTitulo = true)
+    {
+        var requisicao = new HttpRequestMessage(HttpMethod.Post, "/api/chamados")
+        {
+            Content = CorpoChamadoComTitulo(titulo, incluirTitulo)
+        };
+        requisicao.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return requisicao;
+    }
+
     [Fact]
     public async Task HealthCheck_DeveRetornar200SemAutenticacao()
     {
@@ -96,10 +123,42 @@ public class SupportAtosApiTests : IClassFixture<TestWebAppFactory>
         Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
     }
 
-    [Fact]
-    public async Task CriarChamado_TokenValido_CriaChamadoProvisionaUsuarioEPermiteConsultar()
+    [Theory]
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    [InlineData(true, "")]
+    [InlineData(true, "   ")]
+    public async Task CriarChamado_SemTitulo_DeveRetornar400(bool incluirTitulo, string? titulo)
     {
         var token = TestTokenFactory.CriarToken(
+            "portal-qa-titulo-obrigatorio", "qa-titulo@atos.com", "QA Título", "grupo-qa", "Grupo QA", "cliente");
+
+        using var requisicao = RequisicaoChamadoComTitulo(token, titulo, incluirTitulo);
+        var resposta = await _cliente.SendAsync(requisicao);
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        var corpoErro = await resposta.Content.ReadAsStringAsync();
+        Assert.True(corpoErro.Contains("título", StringComparison.OrdinalIgnoreCase),
+            $"Esperado erro informando que o título é obrigatório, obtido: {corpoErro}");
+    }
+
+    [Fact]
+    public async Task CriarChamado_ComTitulo_DeveRetornar201EPersistirTitulo()
+    {
+        var token = TestTokenFactory.CriarToken(
+            "portal-qa-titulo-obrigatorio", "qa-titulo@atos.com", "QA Título", "grupo-qa", "Grupo QA", "cliente");
+
+        using var requisicao = RequisicaoChamadoComTitulo(token, "  Erro ao acessar o portal  ");
+        var resposta = await _cliente.SendAsync(requisicao);
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        var corpo = await resposta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Erro ao acessar o portal", corpo.GetProperty("titulo").GetString());
+    }
+
+    [Fact]
+    public async Task CriarChamado_TokenValido_CriaChamadoProvisionaUsuarioEPermiteConsultar()
+    {        var token = TestTokenFactory.CriarToken(
             "portal-fulano", "fulano@atos.com", "Fulano", "grupo-1", "Grupo Norte", "agente");
 
         var criacao = await _cliente.SendAsync(RequisicaoChamado(bearer: token));
