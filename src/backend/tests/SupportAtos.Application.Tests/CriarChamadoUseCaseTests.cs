@@ -61,6 +61,43 @@ public class CriarChamadoUseCaseTests
             useCase.Handle(new CriarChamadoInput("Portal", "Login", "Mensagem.")));
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Handle_SemTitulo_DeveLancarValidationException(string? titulo)
+    {
+        var fakeChamados = new FakeChamadoRepository();
+        var useCase = new CriarChamadoUseCase(
+            new FakeCurrentUser { Usuario = FakeCurrentUser.ContextoPadrao },
+            new FakeSlaCategoriaRepository(),
+            fakeChamados,
+            new FakeUnitOfWork());
+
+        var excecao = await Assert.ThrowsAsync<ValidationException>(() =>
+            useCase.Handle(new CriarChamadoInput("Portal", "Login", "Não consigo acessar o sistema.", titulo)));
+
+        Assert.Equal("O título é obrigatório.", excecao.Message);
+        Assert.Empty(fakeChamados.Chamados);
+    }
+
+    [Fact]
+    public async Task Handle_ComTitulo_DevePersistirTituloNoChamado()
+    {
+        var fakeChamados = new FakeChamadoRepository();
+        var useCase = new CriarChamadoUseCase(
+            new FakeCurrentUser { Usuario = FakeCurrentUser.ContextoPadrao },
+            new FakeSlaCategoriaRepository(),
+            fakeChamados,
+            new FakeUnitOfWork());
+
+        var resultado = await useCase.Handle(
+            new CriarChamadoInput("Portal", "Login", "Não consigo acessar o sistema.", "  Erro ao acessar o portal  "));
+
+        Assert.Equal("Erro ao acessar o portal", resultado.Titulo);
+        Assert.Equal("Erro ao acessar o portal", Assert.Single(fakeChamados.Chamados).Titulo);
+    }
+
     private sealed class FakeCurrentUserNaoAutenticado : ICurrentUser
     {
         public bool IsAutenticado => false;
