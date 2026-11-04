@@ -4,7 +4,6 @@ import { Box, Chip, LinearProgress, Paper, Stack, Typography } from '@mui/materi
 import { useTheme } from '@mui/material/styles';
 import { WarningAmberRounded } from '@mui/icons-material';
 import { STATUS, PRIORITY } from '../data';
-import { formatarDuracaoMinutos } from '../api/mappers';
 import { MONO } from '../theme';
 
 export function BrandMark({ onDark, width = 150 }) {
@@ -50,18 +49,19 @@ export const isOpenTicket = (t) => !['resolvido', 'fechado'].includes(t.status);
 export const isAtRisk = (t) => t.slaRestante / t.slaTotal < 0.2 && isOpenTicket(t);
 
 export function SlaBar({ ticket }) {
+  const { atos } = useTheme();
   const pct = Math.max(0, Math.min(100, (ticket.slaRestante / ticket.slaTotal) * 100));
   const risk = isAtRisk(ticket);
   const done = !isOpenTicket(ticket);
   const color = risk ? 'error' : done ? 'inherit' : 'primary';
-  const label = ticket.status === 'fechado' ? 'concluído' : ticket.status === 'resolvido' ? 'cumprido' : `${formatarDuracaoMinutos(ticket.slaRestante)} restantes`;
+  const label = ticket.status === 'fechado' ? 'concluído' : ticket.status === 'resolvido' ? 'cumprido' : `${ticket.slaRestante}h restantes`;
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" mb={0.75}>
         <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary' }}>Prazo de SLA</Typography>
         <Typography sx={{ fontFamily: MONO, fontSize: 12, fontWeight: 500, color: risk ? 'error.main' : 'text.secondary' }}>{label}</Typography>
       </Stack>
-      <LinearProgress variant="determinate" value={pct} color={color} sx={{ height: 6, borderRadius: 3, bgcolor: 'divider', color: 'text.disabled' }} />
+      <LinearProgress variant="determinate" value={pct} color={color} sx={{ height: 6, borderRadius: 3, bgcolor: atos.borderDefault, color: 'text.disabled' }} />
       {risk && (
         <Stack direction="row" alignItems="center" spacing={0.5} mt={1} sx={{ color: 'error.main' }}>
           <WarningAmberRounded sx={{ fontSize: 14 }} />

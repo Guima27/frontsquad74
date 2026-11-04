@@ -40,7 +40,7 @@ function CustomerInsights({ tickets }) {
       <Paper variant="outlined" sx={{ p: 2.5 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
           <Box><Eyebrow>Visão geral</Eyebrow><Typography variant="h2">Chamados por status</Typography></Box>
-          <Box sx={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: 2, bgcolor: atos.errorBg, color: 'primary.main' }}><BarChartOutlined fontSize="small" /></Box>
+          <Box sx={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: 2, bgcolor: atos.brandSoft, color: 'primary.main' }}><BarChartOutlined fontSize="small" /></Box>
         </Stack>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mt: 2.5 }}>
           {groups.map((g) => (
@@ -88,7 +88,7 @@ export function NewTicketModal({ user, onClose, onCreate }) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const submit = async (e) => {
+  const submit = (e) => {
     e.preventDefault();
     if (!categoria || !assunto.trim() || !descricao.trim()) {
       setError('Preencha categoria, assunto e descrição.');
@@ -96,18 +96,15 @@ export function NewTicketModal({ user, onClose, onCreate }) {
     }
     setError('');
     setSubmitting(true);
-    try {
-      await onCreate({
-        produto,
-        categoria,
-        assunto: assunto.trim(),
-        descricao: descricao.trim(),
+    setTimeout(() => {
+      const id = `AC-2026-${String(Math.floor(215 + Math.random() * 700)).padStart(5, '0')}`;
+      onCreate({
+        id, empresa: user.empresa, contato: user.nome, produto, categoria, assunto: assunto.trim(),
+        prioridade: 'media', status: 'aberto', agente: null, slaTotal: 48, slaRestante: 48, abertura: 'agora',
+        mensagens: [{ autor: user.nome, tipo: 'cliente', data: 'agora', texto: descricao.trim() }],
+        notas: [],
       });
-    } catch (err) {
-      setError(err?.message || 'Não foi possível abrir o chamado.');
-    } finally {
-      setSubmitting(false);
-    }
+    }, 500);
   };
 
   return (
@@ -263,7 +260,7 @@ export default function TicketList({ tickets, role, user, onOpen, onNew }) {
                 {visible.map((t, i) => (
                   <TableRow key={t.id} hover tabIndex={0} onClick={() => onOpen(t.id)} onKeyDown={(e) => { if (e.key === 'Enter') onOpen(t.id); }}
                     sx={{ cursor: 'pointer', bgcolor: i % 2 === 1 ? atos.tableRowAlt : 'background.paper', '& td': { py: 1.5 } }}>
-                    <TableCell sx={{ borderLeft: 3, borderLeftColor: isAtRisk(t) ? 'primary.main' : 'transparent', fontFamily: MONO, fontSize: 11, color: 'text.disabled', whiteSpace: 'nowrap' }}>{t.id}</TableCell>
+                    <TableCell sx={{ borderLeft: 3, borderLeftColor: isAtRisk(t) ? 'error.main' : 'transparent', fontFamily: MONO, fontSize: 11, color: 'text.disabled', whiteSpace: 'nowrap' }}>{t.id}</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>{t.categoria} · {t.produto}</TableCell>
                     {!isClient && <TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, color: 'text.secondary' }}>{t.empresa}</TableCell>}
                     <TableCell><PriorityLabel level={t.prioridade} /></TableCell>

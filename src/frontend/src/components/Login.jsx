@@ -31,8 +31,8 @@ function ProductPreview() {
       </Stack>
       <Box sx={{ display: 'grid', gridTemplateColumns: '42px 1fr', height: 225 }}>
         <Stack alignItems="center" spacing={2} sx={{ pt: 1.4, borderRight: '1px solid #242126', bgcolor: '#121113' }}>
-          <Box sx={{ width: 20, height: 20, display: 'grid', placeItems: 'center', borderRadius: 1, bgcolor: '#e85a72', fontSize: 8, fontWeight: 800, color: '#fff' }}>A</Box>
-          {[17, 12, 12, 12].map((w, i) => <Box key={i} sx={{ width: w, height: 3, borderRadius: 1, bgcolor: i === 0 ? '#e85a72' : '#3a363c' }} />)}
+          <Box sx={{ width: 20, height: 20, display: 'grid', placeItems: 'center', borderRadius: 1, bgcolor: '#c24673', fontSize: 8, fontWeight: 800, color: '#fff' }}>A</Box>
+          {[17, 12, 12, 12].map((w, i) => <Box key={i} sx={{ width: w, height: 3, borderRadius: 1, bgcolor: i === 0 ? '#c24673' : '#3a363c' }} />)}
         </Stack>
         <Box sx={{ p: '15px 18px', minWidth: 0 }}>
           <Typography sx={{ fontSize: 6, color: '#7d7880', textTransform: 'uppercase', letterSpacing: 0.7 }}>Visão geral</Typography>
