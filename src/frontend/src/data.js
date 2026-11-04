@@ -12,15 +12,16 @@ export const PRIORITY = {
   alta: { label: 'Alta', tone: 'error' },
   media: { label: 'Média', tone: 'warning' },
   baixa: { label: 'Baixa', tone: 'muted' },
-  urgente: { label: 'Urgente', tone: 'error' },
 };
 
 export const STAGES = ['aberto', 'em_andamento', 'resolvido', 'fechado'];
-// Produtos/categorias alinhados ao SLA cadastrado no backend (sla_config).
-export const PRODUCTS = ['Portal'];
-export const CATEGORIES = ['Login', 'Erro de sistema', 'Duvida'];
-export const EMPRESAS = ['Empresa Demo', 'Empresa Teste', 'Grupo Norte'];
-export const AGENTES = ['Admin', 'Agente', 'Felipe Dias'];
+export const PRODUCTS = ['Joe SFA B1', 'Portal Atos Capital', 'SAP Business One', 'SAP S/4HANA'];
+export const CATEGORIES = [
+  'Sincronização SSO', 'Integração ERP', 'Erro de sistema',
+  'Dúvida de uso', 'Solicitação de acesso', 'Performance',
+];
+export const EMPRESAS = ['Banco Confiança', 'Cooperativa Vale', 'Financeira Sul', 'Investa Corretora'];
+export const AGENTES = ['Marina Alves', 'Diego Ramos'];
 
 /* ---------------------------------------------------------------------- */
 /* Mock data                                                               */

@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { ChevronLeft, LockOutlined, Send } from '@mui/icons-material';
-import { STAGES, STATUS } from '../data';
+import { AGENTES, STAGES, STATUS } from '../data';
 import { Eyebrow, SlaBar, StatusChip } from './ui';
 import { MONO } from '../theme';
 
@@ -22,33 +22,43 @@ function Message({ autor, data, texto, tint, note }) {
   );
 }
 
-export default function TicketDetail({
-  ticket, role, user, agents = [], onBack, onReply, onNote, onChangeStatus, onAssign,
-}) {
+export default function TicketDetail({ ticket, role, user, onBack, onUpdate, notify }) {
   const { atos } = useTheme();
   const [reply, setReply] = useState('');
   const [note, setNote] = useState('');
   const [tab, setTab] = useState('conversa');
   const isAgent = role === 'agente';
   const isMine = ticket.agente === user.nome;
-  const team = agents.filter((agente) => agente.nome !== ticket.agente);
+  const team = Array.from(new Set([user.nome, ...AGENTES])).filter((a) => a !== ticket.agente);
   const idx = STAGES.indexOf(ticket.status === 'aguardando_cliente' ? 'em_andamento' : ticket.status);
   const activeStep = ticket.status === 'fechado' ? STAGES.length : idx;
 
   const send = () => {
     if (!reply.trim()) return;
-    onReply(ticket, reply.trim());
+    const msg = {
+      autor: isAgent ? (ticket.agente || 'Equipe de suporte') : user.nome,
+      tipo: isAgent ? 'agente' : 'cliente',
+      data: 'agora', texto: reply,
+    };
+    onUpdate({ ...ticket, mensagens: [...ticket.mensagens, msg], status: isAgent ? 'aguardando_cliente' : 'em_andamento' });
     setReply('');
+    notify(isAgent ? 'Resposta enviada ao cliente.' : 'Atualização enviada à equipe de suporte.');
   };
 
   const addNote = () => {
     if (!note.trim()) return;
-    onNote(ticket, note.trim());
+    onUpdate({ ...ticket, notas: [...ticket.notas, { autor: ticket.agente || 'Agente', data: 'agora', texto: note }] });
     setNote('');
+    notify('Nota interna salva.');
   };
 
-  const setStatus = (s) => { onChangeStatus(ticket, s); };
-  const assign = (agente) => { if (agente) onAssign(ticket, agente); };
+  const setStatus = (s) => { onUpdate({ ...ticket, status: s }); notify(`Status atualizado para "${STATUS[s].label}".`); };
+  const assign = (a) => {
+    onUpdate({ ...ticket, agente: a, status: ticket.status === 'aberto' ? 'em_andamento' : ticket.status });
+    if (!a) notify('Atribuição removida.');
+    else if (a === user.nome) notify('Você assumiu o chamado.');
+    else notify(`Chamado repassado para ${a}.`);
+  };
 
   return (
     <Box sx={{ maxWidth: 1152 }}>
@@ -129,18 +139,12 @@ export default function TicketDetail({
                 {isMine && <Box component="span" sx={{ color: 'success.main' }}> (você)</Box>}
               </Typography>
 
-              {!isMine && <Button fullWidth variant="contained" onClick={() => assign({ id: user.usuarioId, nome: user.nome })} sx={{ mb: 2 }}>Assumir chamado</Button>}
+              {!isMine && <Button fullWidth variant="contained" onClick={() => assign(user.nome)} sx={{ mb: 2 }}>Assumir chamado</Button>}
 
               <Stack spacing={2}>
-                <TextField
-                  select
-                  size="small"
-                  fullWidth
-                  label="Repassar para"
-                  value=""
-                  onChange={(e) => assign(team.find((agente) => String(agente.id) === e.target.value))}
-                >
-                  {team.map((agente) => <MenuItem key={agente.id} value={agente.id}>{agente.nome}</MenuItem>)}
+                <TextField select size="small" fullWidth label="Repassar para" value="" onChange={(e) => assign(e.target.value === '__none__' ? '' : e.target.value)}>
+                  {team.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+                  {ticket.agente && <MenuItem value="__none__">Deixar sem agente</MenuItem>}
                 </TextField>
                 <TextField select size="small" fullWidth label="Status" value={ticket.status} onChange={(e) => setStatus(e.target.value)}>
                   {Object.entries(STATUS).map(([k, v]) => <MenuItem key={k} value={k}>{v.label}</MenuItem>)}

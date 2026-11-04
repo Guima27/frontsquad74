@@ -4,8 +4,7 @@ import { Box, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableRow, Tex
 import { useTheme } from '@mui/material/styles';
 import { AccessTime, CheckCircleOutline, ConfirmationNumberOutlined } from '@mui/icons-material';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CATEGORIES, PRODUCTS } from '../data';
-import { formatarDuracaoMinutos } from '../api/mappers';
+import { CATEGORIES, EMPRESAS, PRODUCTS } from '../data';
 import { Eyebrow, isAtRisk, StatTile } from './ui';
 import { FONT, MONO } from '../theme';
 
@@ -13,7 +12,6 @@ export default function Reports({ tickets, role, user }) {
   const { atos } = useTheme();
   const [empresa, setEmpresa] = useState(role === 'cliente' ? user.empresa : 'todas');
   const scoped = useMemo(() => tickets.filter((t) => empresa === 'todas' || t.empresa === empresa), [tickets, empresa]);
-  const empresas = useMemo(() => [...new Set(tickets.map((t) => t.empresa))].sort((a, b) => a.localeCompare(b)), [tickets]);
 
   const porProduto = PRODUCTS.map((p) => ({ nome: p, total: scoped.filter((t) => t.produto === p).length }));
   const porCategoria = CATEGORIES.map((c) => ({ nome: c, total: scoped.filter((t) => t.categoria === c).length })).sort((a, b) => b.total - a.total);
@@ -30,7 +28,7 @@ export default function Reports({ tickets, role, user }) {
       {role === 'agente' && (
         <TextField select size="small" label="Grupo empresa" value={empresa} onChange={(e) => setEmpresa(e.target.value)} sx={{ minWidth: 240, mb: 2.5 }}>
           <MenuItem value="todas">Todos os grupos empresa</MenuItem>
-          {empresas.map((e) => <MenuItem key={e} value={e}>{e}</MenuItem>)}
+          {EMPRESAS.map((e) => <MenuItem key={e} value={e}>{e}</MenuItem>)}
         </TextField>
       )}
 
@@ -49,8 +47,8 @@ export default function Reports({ tickets, role, user }) {
                 <CartesianGrid stroke={atos.borderSubtle} vertical={false} />
                 <XAxis dataKey="nome" tick={{ ...tick, fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={50} />
                 <YAxis tick={tick} allowDecimals={false} />
-                <Tooltip contentStyle={{ fontFamily: FONT, fontSize: 12, border: `1px solid ${atos.borderDefault}`, background: atos.surfaceBase, color: atos.textPrimary }} />
-                <Bar dataKey="total" fill={atos.brandPrimary} radius={[3, 3, 0, 0]} />
+                <Tooltip cursor={{ fill: atos.brandSoft }} contentStyle={{ fontFamily: FONT, fontSize: 12, border: `1px solid ${atos.borderDefault}`, background: atos.surfaceBase, color: atos.textPrimary }} />
+                <Bar dataKey="total" fill={atos.brandText} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Box>
@@ -82,7 +80,7 @@ export default function Reports({ tickets, role, user }) {
               <TableRow key={t.id} sx={{ bgcolor: i % 2 === 1 ? atos.tableRowAlt : 'background.paper' }}>
                 <TableCell sx={{ fontFamily: MONO, fontSize: 12, color: 'text.disabled' }}>{t.id}</TableCell>
                 <TableCell>{t.categoria} — {t.empresa}</TableCell>
-                <TableCell align="right" sx={{ fontFamily: MONO, fontSize: 12, color: 'error.main' }}>{formatarDuracaoMinutos(t.slaRestante)} restantes</TableCell>
+                <TableCell align="right" sx={{ fontFamily: MONO, fontSize: 12, color: 'error.main' }}>{t.slaRestante}h restantes</TableCell>
               </TableRow>
             ))}
           </TableBody></Table>
