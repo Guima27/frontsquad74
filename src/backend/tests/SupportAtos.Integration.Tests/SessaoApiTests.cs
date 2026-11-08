@@ -27,6 +27,9 @@ public class SessaoApiTests
             if (Falhar) throw new InvalidOperationException("Banco indisponível no teste.");
             return Task.FromResult(new ProvisioningResult(12, 3));
         }
+
+        public Task<ProvisioningResult> ProvisionPortalAsync(PortalUserContext usuario, CancellationToken cancellationToken = default)
+            => ProvisionAsync(usuario, cancellationToken);
     }
 
     private sealed class Fabrica : WebApplicationFactory<Program>
@@ -36,10 +39,12 @@ public class SessaoApiTests
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
+            builder.UseSetting("ConnectionStrings:DefaultConnection", TestWebAppFactory.ConexaoBanco);
             builder.UseSetting("Sso:Issuer", TestTokenFactory.Issuer);
             builder.UseSetting("Sso:Audience", TestTokenFactory.Audience);
             builder.UseSetting("Sso:PublicKeyPem", TestTokenFactory.ChavePublicaPem);
-            builder.UseSetting("Sso:ApiKey", TestTokenFactory.ApiKey);
+            builder.UseSetting("ApiKeys:Portal:PrimaryHash", TestTokenFactory.PortalApiKeyHash);
+            builder.UseSetting("ApiKeys:Automacao:PrimaryHash", TestTokenFactory.AutomacaoApiKeyHash);
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<IUserProvisioningService>();
@@ -120,9 +125,9 @@ public class SessaoApiTests
         using var fabrica = new Fabrica();
         using var cliente = fabrica.CreateClient();
         using var req = Requisicao();
-        req.Headers.Add("X-Api-Key", TestTokenFactory.ApiKey);
+        req.Headers.Add("X-Api-Key", TestTokenFactory.AutomacaoApiKey);
         using var resposta = await cliente.SendAsync(req);
-        Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
         Assert.Equal(0, fabrica.Provisionamento.Chamadas);
     }
 

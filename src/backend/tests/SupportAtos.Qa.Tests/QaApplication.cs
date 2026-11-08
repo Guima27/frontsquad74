@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using SupportAtos.Api.Options;
 using SupportAtos.Domain.Entities;
 using SupportAtos.Domain.Enums;
 using SupportAtos.Infrastructure.Persistence;
@@ -35,13 +36,10 @@ public sealed class QaApplication(string connection) : WebApplicationFactory<Pro
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:DefaultConnection", connection);
-        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["ConnectionStrings:DefaultConnection"] = connection,
-            ["Sso:ApiKey"] = ApiKey,
-            ["Sso:Issuer"] = "atos-qa", ["Sso:Audience"] = "atos-api-qa",
-            ["Sso:PublicKeyPem"] = _rsa.ExportSubjectPublicKeyInfoPem()
-        }));
+        builder.UseSetting("ApiKeys:Portal:PrimaryHash", ApiKeyHasher.Hash(ApiKey));
+        builder.UseSetting("Sso:Issuer", "atos-qa");
+        builder.UseSetting("Sso:Audience", "atos-api-qa");
+        builder.UseSetting("Sso:PublicKeyPem", _rsa.ExportSubjectPublicKeyInfoPem());
         // Evita EventLog do Windows e logs com parâmetros. Não substitui autenticação, DI ou persistência.
         builder.ConfigureLogging(logging => { logging.ClearProviders(); logging.AddProvider(Errors); });
     }

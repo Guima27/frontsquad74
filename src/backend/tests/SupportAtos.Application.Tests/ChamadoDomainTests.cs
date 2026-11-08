@@ -13,7 +13,7 @@ public class ChamadoDomainTests
     {
         var sla = CriarSla();
 
-        var chamado = Chamado.Criar("SA-000000001", 1, 1, sla, "Portal", "Login");
+        var chamado = Chamado.Criar("SA-000000001", 1, 1, sla, "Portal", "Login", "Título");
 
         Assert.Equal("SA-000000001", chamado.CodigoPublico);
         Assert.Equal(StatusChamado.Aberto, chamado.Status);
@@ -31,7 +31,7 @@ public class ChamadoDomainTests
     [InlineData(StatusChamado.Fechado)]
     public void MudarStatus_DeAberto_ParaStatusValido_DeveAlterar(StatusChamado novoStatus)
     {
-        var chamado = Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login");
+        var chamado = Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login", "Título");
 
         chamado.MudarStatus(novoStatus, DateTime.UtcNow);
 
@@ -49,7 +49,7 @@ public class ChamadoDomainTests
     [Fact]
     public void MudarStatus_DeTransicaoInvalida_DeveLancarDomainException()
     {
-        var chamado = Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login");
+        var chamado = Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login", "Título");
         chamado.MudarStatus(StatusChamado.Resolvido, DateTime.UtcNow);
 
         Assert.Throws<DomainException>(() => chamado.MudarStatus(StatusChamado.AguardandoCliente, DateTime.UtcNow));
@@ -58,7 +58,7 @@ public class ChamadoDomainTests
     [Fact]
     public void Fechado_NaoPodeIrParaAguardandoCliente()
     {
-        var chamado = Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login");
+        var chamado = Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login", "Título");
         chamado.MudarStatus(StatusChamado.Fechado, DateTime.UtcNow);
 
         Assert.Throws<DomainException>(() => chamado.MudarStatus(StatusChamado.AguardandoCliente, DateTime.UtcNow));
@@ -67,7 +67,7 @@ public class ChamadoDomainTests
     [Fact]
     public void AdicionarInteracao_DeveAdicionarInteracaoPublicaComMensagem()
     {
-        var chamado = Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login");
+        var chamado = Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login", "Título");
 
         chamado.AdicionarInteracao(1, TipoInteracao.Publica, "Não consigo acessar o sistema.", DateTime.UtcNow);
 
@@ -79,7 +79,7 @@ public class ChamadoDomainTests
     [Fact]
     public void ReabrirChamadoFechado_DeveLimparFechadoEm()
     {
-        var chamado = Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login");
+        var chamado = Chamado.Criar("SA-000000001", 1, 1, CriarSla(), "Portal", "Login", "Título");
         chamado.MudarStatus(StatusChamado.Fechado, DateTime.UtcNow);
         Assert.NotNull(chamado.FechadoEm);
 

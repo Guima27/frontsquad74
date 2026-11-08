@@ -4,14 +4,15 @@ using SupportAtos.Application.Abstractions;
 namespace SupportAtos.Api.Providers;
 
 /// <summary>
-/// Implementação real do usuário autenticado: lê o PortalUserContext já
-/// provisionado no OnTokenValidated do JwtBearer (guardado no HttpContext.Items).
+/// Lê o <see cref="PortalUserContext"/> já resolvido no HttpContext.Items:
+/// pelo JwtBearer (equipe, OnTokenValidated) ou pelo middleware do portal
+/// (API key + headers X-Portal-User-Id/X-Portal-Group-Id).
 /// </summary>
-public class JwtCurrentUserProvider : ICurrentUser
+public class HttpContextCurrentUserProvider : ICurrentUser
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public JwtCurrentUserProvider(IHttpContextAccessor httpContextAccessor)
+    public HttpContextCurrentUserProvider(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
     }
@@ -23,5 +24,5 @@ public class JwtCurrentUserProvider : ICurrentUser
 
     public PortalUserContext UsuarioAtual
         => ContextoDisponivel()
-            ?? throw new InvalidOperationException("Requisição sem usuário do portal autenticado/provisionado.");
+            ?? throw new InvalidOperationException("Requisição sem usuário autenticado/provisionado.");
 }

@@ -1,12 +1,24 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
 using SupportAtos.Api.Authentication;
 using SupportAtos.Api.Middleware;
+using SupportAtos.Api.Options;
 using SupportAtos.Api.Providers;
+using SupportAtos.Api.Security;
 using SupportAtos.Application;
 using SupportAtos.Application.Abstractions;
+using SupportAtos.Domain.Enums;
 using SupportAtos.Infrastructure;
+using SupportAtos.Infrastructure.Webhooks;
+
+if (args.Contains("--generate-api-key"))
+{
+    Environment.ExitCode = ApiKeyGenerator.Executar(args, Console.Out);
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args.Where(arg => arg != "--check-dev-auth").ToArray());
 
@@ -24,6 +36,30 @@ if (args.Contains("--check-dev-auth"))
     return;
 }
 
+var apiKeySettings = builder.Configuration
+    .GetSection(ApiKeySettings.SectionName)
+    .Get<ApiKeySettings>() ?? new ApiKeySettings();
+ApiKeyConfigurationValidator.Validar(apiKeySettings, builder.Environment);
+
+var webhookSettings = builder.Configuration
+    .GetSection(WebhookSettings.SectionName)
+    .Get<WebhookSettings>() ?? new WebhookSettings();
+WebhookSettingsValidator.Validar(webhookSettings, builder.Environment);
+
+if (!string.IsNullOrWhiteSpace(webhookSettings.ApiKey))
+{
+    var hashWebhook = ApiKeyHasher.Hash(webhookSettings.ApiKey);
+    if (apiKeySettings.Portal.Hashes()
+        .Concat(apiKeySettings.Automacao.Hashes())
+        .Any(hash => string.Equals(hash.Trim(), hashWebhook, StringComparison.OrdinalIgnoreCase)))
+    {
+        throw new InvalidOperationException(
+            "Webhooks:ApiKey deve ser distinta das API keys de entrada (portal/automação).");
+    }
+}
+
+builder.Services.Configure<ApiKeySettings>(builder.Configuration.GetSection(ApiKeySettings.SectionName));
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -36,18 +72,19 @@ builder.Services.AddSwaggerGen(options =>
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
         BearerFormat = "JWT",
-        Description = "Token JWT (RS256) emitido pelo portal. Rotas de portal exigem este scheme."
+        Description = "JWT (RS256) da equipe: Admin, Supervisor e Agente."
     });
     options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
     {
         Type = SecuritySchemeType.ApiKey,
         In = ParameterLocation.Header,
         Name = AuthenticationSetup.ApiKeyHeaderName,
-        Description = "API key máquina-a-máquina (ex.: n8n). Só atende endpoints de webhook; rotas de portal retornam 401/403."
+        Description = "API key servidor-a-servidor. Escopos: portal (abre/consulta chamados em nome de usuários) e automacao (n8n)."
     });
     options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>(),
+        [new OpenApiSecuritySchemeReference("ApiKey", document)] = new List<string>()
     });
 });
 
@@ -60,44 +97,121 @@ var origensFrontend = builder.Configuration.GetSection("Cors:AllowedOrigins").Ge
     .Select(origem => origem.Value)
     .Where(origem => !string.IsNullOrWhiteSpace(origem))
     .ToArray();
-if (origensFrontend.Length == 0)
+if (origensFrontend.Length == 0 && builder.Environment.IsDevelopment())
 {
     origensFrontend = new[] { "http://localhost:5173" };
 }
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("FrontendDev", policy =>
-        policy.WithOrigins(origensFrontend!)
-            .AllowAnyHeader()
-            .AllowAnyMethod());
+    options.AddPolicy("Frontend", policy =>
+    {
+        if (origensFrontend.Length > 0)
+        {
+            policy.WithOrigins(origensFrontend!)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    });
 });
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
-// [AUTH-DESATIVADA] Validação JWT/SSO desativada temporariamente para conectar o frontend sem token.
-// Reative descomentando a linha abaixo e o bloco de autorização/middlewares ao final do arquivo.
-// builder.Services.AddSsoAuthentication(builder.Configuration);
+builder.Services.AddSsoAuthentication(builder.Configuration);
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AuthenticationSetup.PolicyPortal, policy =>
+        policy.AddAuthenticationSchemes(AuthenticationSetup.ApiKeyScheme)
+            .RequireAuthenticatedUser()
+            .RequireClaim(AuthenticationSetup.ScopeClaim, AuthenticationSetup.PortalScope));
 
-// [AUTH-DESATIVADA] Políticas de autorização (incluindo fallback que exigia usuário autenticado) desativadas.
-// builder.Services.AddAuthorization(options =>
-// {
-//     options.AddPolicy("UsuarioPortal", policy =>
-//         policy.RequireAuthenticatedUser().AddRequirements(new UsuarioPortalRequirement()));
-//     options.FallbackPolicy = new AuthorizationPolicyBuilder()
-//         .RequireAuthenticatedUser()
-//         .Build();
-// });
-// builder.Services.AddScoped<IAuthorizationHandler, UsuarioPortalAuthorizationHandler>();
+    options.AddPolicy(AuthenticationSetup.PolicyAutomacao, policy =>
+        policy.AddAuthenticationSchemes(AuthenticationSetup.ApiKeyScheme)
+            .RequireAuthenticatedUser()
+            .RequireClaim(AuthenticationSetup.ScopeClaim, AuthenticationSetup.AutomacaoScope));
 
-// [AUTH-DESATIVADA] Usuário real vinha do JWT provisionado; agora usamos um mock local.
-// builder.Services.AddScoped<ICurrentUser, JwtCurrentUserProvider>();
-builder.Services.AddScoped<ICurrentUser, MockCurrentUserProvider>();
+    options.AddPolicy(AuthenticationSetup.PolicyJwt, policy =>
+        policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+            .RequireAuthenticatedUser());
+
+    options.AddPolicy(AuthenticationSetup.PolicyEquipe, policy =>
+        policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+            .RequireAuthenticatedUser()
+            .RequireRole(
+                nameof(PapelUsuario.Admin),
+                nameof(PapelUsuario.Supervisor),
+                nameof(PapelUsuario.Agente)));
+
+    options.AddPolicy(AuthenticationSetup.PolicyEquipeAdmin, policy =>
+        policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+            .RequireAuthenticatedUser()
+            .RequireRole(nameof(PapelUsuario.Admin)));
+
+    options.AddPolicy(AuthenticationSetup.PolicyPortalOuEquipe, policy =>
+        policy.AddAuthenticationSchemes(
+                AuthenticationSetup.ApiKeyScheme,
+                JwtBearerDefaults.AuthenticationScheme)
+            .RequireAuthenticatedUser()
+            .RequireAssertion(context =>
+                context.User.HasClaim(AuthenticationSetup.ScopeClaim, AuthenticationSetup.PortalScope)
+                || context.User.IsInRole(nameof(PapelUsuario.Admin))
+                || context.User.IsInRole(nameof(PapelUsuario.Supervisor))
+                || context.User.IsInRole(nameof(PapelUsuario.Agente))));
+
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
+builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUserProvider>();
+builder.Services.AddScoped<PortalUserResolver>();
+builder.Services.AddSingleton<ISecurityRateLimiter, SecurityRateLimiter>();
 
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-app.UseCors("FrontendDev");
+app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseMiddleware<SecurityRateLimitMiddleware>();
+
+app.UseStatusCodePages(async statusCodeContext =>
+{
+    var response = statusCodeContext.HttpContext.Response;
+    if (response.HasStarted || response.ContentLength > 0)
+    {
+        return;
+    }
+
+    var (titulo, detalhe) = response.StatusCode switch
+    {
+        StatusCodes.Status401Unauthorized => ("Não autenticado", "Credenciais ausentes ou inválidas."),
+        StatusCodes.Status403Forbidden => ("Acesso negado", "Você não tem permissão para acessar este recurso."),
+        StatusCodes.Status404NotFound => ("Recurso não encontrado", "O recurso solicitado não existe."),
+        StatusCodes.Status405MethodNotAllowed => ("Método não permitido", "O método HTTP não é suportado por este recurso."),
+        _ => (string.Empty, string.Empty)
+    };
+
+    if (string.IsNullOrEmpty(titulo))
+    {
+        return;
+    }
+
+    response.ContentType = "application/problem+json";
+    await response.WriteAsJsonAsync(new ProblemDetails
+    {
+        Status = response.StatusCode,
+        Title = titulo,
+        Detail = detalhe,
+        Instance = statusCodeContext.HttpContext.Request.Path
+    });
+});
+
+app.UseCors("Frontend");
+
+if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -105,10 +219,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// [AUTH-DESATIVADA] Middlewares de autenticação/autorização desativados temporariamente.
-// Reative junto com AddSsoAuthentication/AddAuthorization e os atributos [Authorize] dos controllers.
-// app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseMiddleware<PortalUserContextMiddleware>();
+
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapControllers();
 
